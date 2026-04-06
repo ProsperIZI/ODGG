@@ -783,7 +783,7 @@
 
     function renderLeaderboard() {
       leaderboardEl.innerHTML = '';
-      const elim = Object.entries(players).filter(([,p]) => p.eliminated).sort(([,a],[,b]) => b.tourStopped - a.tourStopped);
+      const elim = Object.entries(players).filter(([,p]) => p.eliminated).sort(([,a],[,b]) => a.tourStopped - b.tourStopped);
 
       if (elim.length === 0) { leaderboardEl.appendChild(emptyLbEl); return; }
 
