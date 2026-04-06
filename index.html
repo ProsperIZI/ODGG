@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Empereur ODGG</title>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
 
@@ -45,8 +44,9 @@
       gap: 8px;
       flex-wrap: wrap;
       justify-content: center;
+      align-items: center;
     }
-    nav a {
+    nav a, nav button {
       padding: 8px 20px;
       border-radius: 50px;
       font-size: 0.85rem;
@@ -57,9 +57,73 @@
       border: 1px solid #2a2a40;
       color: #888;
       background: #1a1a2e;
+      cursor: pointer;
     }
-    nav a:hover { opacity: 0.75; }
+    nav a:hover, nav button:hover { opacity: 0.75; }
     nav a.active { background: #6c63ff; color: #fff; border-color: #6c63ff; }
+    nav .btn-login { border-color: #ffbe76; color: #ffbe76; }
+    nav .btn-logout { border-color: #6c63ff; color: #6c63ff; }
+
+    /* ADMIN */
+    .admin-only { display: none !important; }
+    body.is-admin .admin-only { display: flex !important; }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 16px;
+      padding: 32px;
+      width: 320px;
+      text-align: center;
+    }
+    .modal h3 {
+      font-size: 0.9rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 20px;
+    }
+    .modal input {
+      width: 100%;
+      background: #12121f;
+      border: 1px solid #2a2a40;
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .modal input:focus { border-color: #6c63ff; }
+    .modal .btn-confirm {
+      width: 100%;
+      padding: 12px;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .modal .btn-confirm:hover { opacity: 0.85; }
+    .modal .modal-error {
+      color: #ff6584;
+      font-size: 0.8rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
 
     /* ─── LAYOUT ─── */
     .layout {
@@ -131,7 +195,6 @@
       margin-bottom: 16px;
     }
 
-    /* Ajout joueur */
     .add-player {
       display: flex;
       gap: 8px;
@@ -164,7 +227,6 @@
     }
     .btn-add:hover { opacity: 0.85; }
 
-    /* Liste joueurs actifs */
     .active-players {
       display: flex;
       flex-direction: column;
@@ -205,7 +267,6 @@
       cursor: default;
     }
 
-    /* Leaderboard */
     .leaderboard-title {
       font-size: 0.8rem;
       letter-spacing: 0.2em;
@@ -270,13 +331,24 @@
     <a href="index.html" class="active">Empereur</a>
     <a href="comite.html">Comit&eacute;</a>
     <a href="cruche.html">Cruche</a>
+    <button class="btn-login" id="btnLogin">Admin</button>
   </nav>
 
-  <div id="fbStatus">● connexion…</div>
+  <div id="fbStatus">&#9679; connexion&hellip;</div>
+
+  <!-- MODAL LOGIN -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3>Connexion Admin</h3>
+      <input type="password" id="passInput" placeholder="Mot de passe..." autocomplete="off"/>
+      <button class="btn-confirm" id="btnPassOk">Se connecter</button>
+      <div class="modal-error" id="modalError"></div>
+    </div>
+  </div>
 
   <div class="layout">
 
-    <!-- ─── TIMER ─── -->
+    <!-- TIMER -->
     <div class="timer-section">
       <div class="timer-wrapper">
         <svg viewBox="0 0 280 280">
@@ -288,36 +360,32 @@
           <div class="round-label">TOUR <span class="round-badge" id="roundBadge">1 / 15</span></div>
         </div>
       </div>
-      <div class="controls">
-        <button id="btnStart">Démarrer</button>
-        <button id="btnReset">Réinitialiser</button>
+      <div class="controls admin-only">
+        <button id="btnStart">D&eacute;marrer</button>
+        <button id="btnReset">R&eacute;initialiser</button>
       </div>
     </div>
 
-    <!-- ─── CLASSEMENT ─── -->
+    <!-- CLASSEMENT -->
     <div class="ranking-section">
       <h2>Classement</h2>
 
-      <div class="add-player">
-        <input id="playerInput" type="text" placeholder="Nom du joueur…" maxlength="30"/>
+      <div class="add-player admin-only">
+        <input id="playerInput" type="text" placeholder="Nom du joueur&hellip;" maxlength="30"/>
         <button class="btn-add" id="btnAdd">+</button>
       </div>
 
       <div class="active-players" id="activePlayers"></div>
 
-      <div class="leaderboard-title">Éliminés</div>
+      <div class="leaderboard-title">&Eacute;limin&eacute;s</div>
       <div class="leaderboard" id="leaderboard">
-        <div class="empty-lb" id="emptyLb">Aucun joueur éliminé pour l'instant</div>
+        <div class="empty-lb" id="emptyLb">Aucun joueur &eacute;limin&eacute; pour l'instant</div>
       </div>
     </div>
 
   </div>
 
   <script>
-    // ══════════════════════════════════════════════════════
-    //  🔥 FIREBASE CONFIG — remplace par tes propres valeurs
-    //  (Projet Firebase → Paramètres → Config web)
-    // ══════════════════════════════════════════════════════
     const firebaseConfig = {
       apiKey:            "AIzaSyBECOMyRRCKaAOThoUAS4STiFFPNhlbpvs",
       authDomain:        "odgg-80281.firebaseapp.com",
@@ -333,37 +401,99 @@
     const timerRef   = db.ref('game/timer');
     const playersRef = db.ref('game/players');
 
-    // Décalage horloge client ↔ serveur Firebase
+    // ── ADMIN AUTH ──
+    let isAdmin = false;
+    const btnLogin    = document.getElementById('btnLogin');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const passInput   = document.getElementById('passInput');
+    const btnPassOk   = document.getElementById('btnPassOk');
+    const modalError  = document.getElementById('modalError');
+
+    function setAdmin(val) {
+      isAdmin = val;
+      if (val) {
+        document.body.classList.add('is-admin');
+        btnLogin.textContent = 'Deconnexion';
+        btnLogin.className = 'btn-logout';
+        localStorage.setItem('odgg_admin', '1');
+      } else {
+        document.body.classList.remove('is-admin');
+        btnLogin.textContent = 'Admin';
+        btnLogin.className = 'btn-login';
+        localStorage.removeItem('odgg_admin');
+      }
+      // Re-render pour afficher/masquer les boutons dans les cards
+      renderActivePlayers();
+      renderLeaderboard();
+    }
+
+    btnLogin.addEventListener('click', () => {
+      if (isAdmin) { setAdmin(false); return; }
+      modalOverlay.classList.add('open');
+      passInput.value = '';
+      modalError.textContent = '';
+      passInput.focus();
+    });
+
+    modalOverlay.addEventListener('click', e => {
+      if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+    });
+
+    function tryLogin() {
+      const pass = passInput.value;
+      db.ref('config/adminPass').once('value', snap => {
+        const stored = snap.val();
+        if (!stored) {
+          // Premier lancement : on cree le mot de passe par defaut
+          db.ref('config/adminPass').set('odgg');
+          if (pass === 'odgg') {
+            setAdmin(true);
+            modalOverlay.classList.remove('open');
+          } else {
+            modalError.textContent = 'Mot de passe incorrect';
+          }
+        } else if (pass === stored) {
+          setAdmin(true);
+          modalOverlay.classList.remove('open');
+        } else {
+          modalError.textContent = 'Mot de passe incorrect';
+        }
+      });
+    }
+
+    btnPassOk.addEventListener('click', tryLogin);
+    passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+
+    // Restaurer session
+    if (localStorage.getItem('odgg_admin') === '1') {
+      db.ref('config/adminPass').once('value', () => setAdmin(true));
+    }
+
+    // ── CONNEXION ──
     let serverOffset = 0;
     db.ref('.info/serverTimeOffset').on('value', s => { serverOffset = s.val() || 0; });
     const serverNow = () => Date.now() + serverOffset;
 
-    // ── INDICATEUR CONNEXION ──
     const fbStatusEl = document.getElementById('fbStatus');
     db.ref('.info/connected').on('value', snap => {
       if (snap.val()) {
-        fbStatusEl.textContent = '● en ligne';
+        fbStatusEl.textContent = '\u25CF en ligne';
         fbStatusEl.style.color = '#6c63ff';
       } else {
-        fbStatusEl.textContent = '● hors ligne';
+        fbStatusEl.textContent = '\u25CF hors ligne';
         fbStatusEl.style.color = '#ff6584';
       }
     });
 
     // ── CONSTANTES ──
-    const CIRCUMFERENCE = 2 * Math.PI * 120; // ~753.98
+    const CIRCUMFERENCE = 2 * Math.PI * 120;
 
-    // ── STATE LOCAL (miroir Firebase) ──
+    // ── STATE LOCAL ──
     let timerState = {
-      running: false,
-      endTime: null,
-      secondsLeft: 15 * 60,
-      totalSeconds: 15 * 60,
-      globalTour: 1,
-      loopCount: 0,
-      currentMinutes: 15
+      running: false, endTime: null, secondsLeft: 15 * 60,
+      totalSeconds: 15 * 60, globalTour: 1, loopCount: 0, currentMinutes: 15
     };
-    let players = {};         // { firebaseKey: { name, eliminated, tourStopped, order } }
+    let players = {};
     let localInterval = null;
     let advancePending = false;
 
@@ -381,10 +511,8 @@
 
     progressEl.style.strokeDasharray = CIRCUMFERENCE;
 
-    // ── UTILS ──
     function formatTime(s) {
-      const m = Math.floor(s / 60);
-      const sec = s % 60;
+      const m = Math.floor(s / 60), sec = s % 60;
       return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
     }
 
@@ -392,7 +520,7 @@
       const fraction = total > 0 ? seconds / total : 0;
       progressEl.style.strokeDashoffset = CIRCUMFERENCE * (1 - fraction);
       progressEl.classList.remove('warn', 'danger');
-      if (fraction <= 0.25)     progressEl.classList.add('danger');
+      if (fraction <= 0.25) progressEl.classList.add('danger');
       else if (fraction <= 0.5) progressEl.classList.add('warn');
     }
 
@@ -405,7 +533,6 @@
       return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    // ── AFFICHAGE ──
     function computeSeconds() {
       if (timerState.running && timerState.endTime) {
         return Math.max(0, Math.round((timerState.endTime - serverNow()) / 1000));
@@ -415,122 +542,65 @@
 
     function updateDisplay() {
       const seconds = computeSeconds();
-
       timeTextEl.textContent = formatTime(seconds);
       updateProgress(seconds, timerState.totalSeconds);
 
-      // Libellé du bouton
       const isStart = !timerState.running && timerState.globalTour === 1 && seconds === timerState.totalSeconds;
-      btnStart.textContent = timerState.running ? 'Pause' : (isStart ? 'Démarrer' : 'Reprendre');
+      btnStart.textContent = timerState.running ? 'Pause' : (isStart ? 'D\u00e9marrer' : 'Reprendre');
 
-      // Badge de tour
       if (timerState.globalTour <= 15) {
         roundBadgeEl.textContent = `${timerState.globalTour} / 15`;
       } else {
-        roundBadgeEl.textContent = `∞ boucle ${timerState.loopCount}`;
+        roundBadgeEl.textContent = `\u221E boucle ${timerState.loopCount}`;
       }
 
-      // Passage au tour suivant si le temps est écoulé
       if (timerState.running && seconds <= 0 && !advancePending) {
         advancePending = true;
         advanceRound();
       }
     }
 
-    function startLocalInterval() {
-      stopLocalInterval();
-      localInterval = setInterval(updateDisplay, 500);
-    }
+    function startLocalInterval() { stopLocalInterval(); localInterval = setInterval(updateDisplay, 500); }
+    function stopLocalInterval() { if (localInterval) { clearInterval(localInterval); localInterval = null; } }
 
-    function stopLocalInterval() {
-      if (localInterval) { clearInterval(localInterval); localInterval = null; }
-    }
-
-    // ── ACTIONS FIREBASE ──
     function fbStart() {
       const seconds = computeSeconds();
-      timerRef.update({
-        running: true,
-        endTime: serverNow() + seconds * 1000,
-        secondsLeft: seconds
-      });
+      timerRef.update({ running: true, endTime: serverNow() + seconds * 1000, secondsLeft: seconds });
     }
-
     function fbPause() {
       const seconds = computeSeconds();
-      timerRef.update({
-        running: false,
-        secondsLeft: seconds,
-        endTime: null
-      });
+      timerRef.update({ running: false, secondsLeft: seconds, endTime: null });
     }
-
     function fbReset() {
-      timerRef.set({
-        running: false,
-        endTime: null,
-        secondsLeft: 15 * 60,
-        totalSeconds: 15 * 60,
-        globalTour: 1,
-        loopCount: 0,
-        currentMinutes: 15
-      });
-      // Réactive tous les joueurs
+      timerRef.set({ running: false, endTime: null, secondsLeft: 15*60, totalSeconds: 15*60, globalTour: 1, loopCount: 0, currentMinutes: 15 });
       const updates = {};
-      Object.keys(players).forEach(id => {
-        updates[`${id}/eliminated`] = false;
-        updates[`${id}/tourStopped`] = null;
-      });
+      Object.keys(players).forEach(id => { updates[`${id}/eliminated`] = false; updates[`${id}/tourStopped`] = null; });
       if (Object.keys(updates).length) playersRef.update(updates);
     }
 
-    // Transaction atomique : un seul appareil passe au tour suivant
     function advanceRound() {
       timerRef.transaction(timer => {
-        if (!timer || !timer.running) return; // rien à faire
+        if (!timer || !timer.running) return;
         const now = serverNow();
-        if (timer.endTime > now + 1000) return; // pas encore terminé, on abandonne
-
+        if (timer.endTime > now + 1000) return;
         let { globalTour, currentMinutes, loopCount } = timer;
         globalTour++;
-        if (currentMinutes > 1) currentMinutes--;
-        else loopCount++;
-
+        if (currentMinutes > 1) currentMinutes--; else loopCount++;
         const newSeconds = currentMinutes * 60;
-        return {
-          ...timer,
-          globalTour,
-          currentMinutes,
-          loopCount,
-          secondsLeft: newSeconds,
-          totalSeconds: newSeconds,
-          endTime: now + newSeconds * 1000
-        };
+        return { ...timer, globalTour, currentMinutes, loopCount, secondsLeft: newSeconds, totalSeconds: newSeconds, endTime: now + newSeconds * 1000 };
       }, () => { advancePending = false; });
     }
 
-    // ── ÉCOUTE FIREBASE ──
     timerRef.once('value', snap => {
       if (!snap.exists()) {
-        // Premier lancement : initialise la base
-        timerRef.set({
-          running: false,
-          endTime: null,
-          secondsLeft: 15 * 60,
-          totalSeconds: 15 * 60,
-          globalTour: 1,
-          loopCount: 0,
-          currentMinutes: 15
-        });
+        timerRef.set({ running: false, endTime: null, secondsLeft: 15*60, totalSeconds: 15*60, globalTour: 1, loopCount: 0, currentMinutes: 15 });
       }
     });
 
     timerRef.on('value', snap => {
-      const data = snap.val();
-      if (!data) return;
+      const data = snap.val(); if (!data) return;
       timerState = data;
-      if (timerState.running) startLocalInterval();
-      else stopLocalInterval();
+      if (timerState.running) startLocalInterval(); else stopLocalInterval();
       updateDisplay();
     });
 
@@ -540,26 +610,16 @@
       renderLeaderboard();
     });
 
-    // ── CONTRÔLES ──
     btnStart.addEventListener('click', () => { timerState.running ? fbPause() : fbStart(); });
     btnReset.addEventListener('click', fbReset);
 
-    // ── GESTION JOUEURS ──
     function addPlayer(name) {
-      name = name.trim();
-      if (!name) return;
+      name = name.trim(); if (!name) return;
       playersRef.push({ name, eliminated: false, tourStopped: null, order: Date.now() });
     }
+    function eliminatePlayer(id) { playersRef.child(id).update({ eliminated: true, tourStopped: timerState.globalTour }); }
+    function removePlayer(id) { playersRef.child(id).remove(); }
 
-    function eliminatePlayer(id) {
-      playersRef.child(id).update({ eliminated: true, tourStopped: timerState.globalTour });
-    }
-
-    function removePlayer(id) {
-      playersRef.child(id).remove();
-    }
-
-    // ── RENDU ──
     function renderActivePlayers() {
       activePlayersEl.innerHTML = '';
       const sorted = Object.entries(players).sort(([,a],[,b]) => a.order - b.order);
@@ -569,68 +629,60 @@
       active.forEach(([id, p]) => {
         const card = document.createElement('div');
         card.className = 'player-card';
+        const btns = isAdmin
+          ? `<div style="display:flex;gap:8px;align-items:center">
+               <button class="btn-stop" data-id="${id}">Arr\u00eat</button>
+               <button class="btn-stop" style="background:#2a2a40;font-size:1rem;padding:6px 10px" data-remove="${id}" title="Supprimer">\u2715</button>
+             </div>`
+          : '';
         card.innerHTML = `
           <div>
             <div class="player-name">${escHtml(p.name)}</div>
-            <div class="player-status">En course — ${tourLabel(timerState.globalTour)}</div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn-stop" data-id="${id}">Arrêt</button>
-            <button class="btn-stop" style="background:#2a2a40;font-size:1rem;padding:6px 10px" data-remove="${id}" title="Supprimer">✕</button>
-          </div>`;
+            <div class="player-status">En course \u2014 ${tourLabel(timerState.globalTour)}</div>
+          </div>${btns}`;
         activePlayersEl.appendChild(card);
       });
 
-      activePlayersEl.querySelectorAll('.btn-stop[data-id]').forEach(btn => {
-        btn.addEventListener('click', () => eliminatePlayer(btn.dataset.id));
-      });
-      activePlayersEl.querySelectorAll('[data-remove]').forEach(btn => {
-        btn.addEventListener('click', () => removePlayer(btn.dataset.remove));
-      });
+      if (isAdmin) {
+        activePlayersEl.querySelectorAll('.btn-stop[data-id]').forEach(btn => {
+          btn.addEventListener('click', () => eliminatePlayer(btn.dataset.id));
+        });
+        activePlayersEl.querySelectorAll('[data-remove]').forEach(btn => {
+          btn.addEventListener('click', () => removePlayer(btn.dataset.remove));
+        });
+      }
     }
 
     function renderLeaderboard() {
       leaderboardEl.innerHTML = '';
-      const elim = Object.entries(players)
-        .filter(([,p]) => p.eliminated)
-        .sort(([,a],[,b]) => b.tourStopped - a.tourStopped);
+      const elim = Object.entries(players).filter(([,p]) => p.eliminated).sort(([,a],[,b]) => b.tourStopped - a.tourStopped);
 
-      if (elim.length === 0) {
-        leaderboardEl.appendChild(emptyLbEl);
-        return;
-      }
+      if (elim.length === 0) { leaderboardEl.appendChild(emptyLbEl); return; }
 
-      const medals = ['🥇','🥈','🥉'];
+      const medals = ['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49'];
       elim.forEach(([id, p], i) => {
         const isLoop = p.tourStopped > 15;
         const row = document.createElement('div');
         row.className = 'lb-row';
+        const removeBtn = isAdmin
+          ? `<button style="background:none;border:none;color:#333;cursor:pointer;font-size:0.9rem;padding:2px 4px" title="Retirer" data-remove-lb="${id}">\u2715</button>`
+          : '';
         row.innerHTML = `
           <div class="lb-rank">${medals[i] ?? (i + 1)}</div>
           <div class="lb-name">${escHtml(p.name)}</div>
-          <div class="lb-tour ${isLoop ? 'loop' : ''}">${tourLabel(p.tourStopped)}</div>
-          <button style="background:none;border:none;color:#333;cursor:pointer;font-size:0.9rem;padding:2px 4px" title="Retirer" data-remove-lb="${id}">✕</button>`;
+          <div class="lb-tour ${isLoop ? 'loop' : ''}">${tourLabel(p.tourStopped)}</div>${removeBtn}`;
         leaderboardEl.appendChild(row);
       });
 
-      leaderboardEl.querySelectorAll('[data-remove-lb]').forEach(btn => {
-        btn.addEventListener('click', () => removePlayer(btn.dataset.removeLb));
-      });
+      if (isAdmin) {
+        leaderboardEl.querySelectorAll('[data-remove-lb]').forEach(btn => {
+          btn.addEventListener('click', () => removePlayer(btn.dataset.removeLb));
+        });
+      }
     }
 
-    // ── AJOUT JOUEUR UI ──
-    btnAdd.addEventListener('click', () => {
-      addPlayer(playerInput.value);
-      playerInput.value = '';
-      playerInput.focus();
-    });
-
-    playerInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        addPlayer(playerInput.value);
-        playerInput.value = '';
-      }
-    });
+    btnAdd.addEventListener('click', () => { addPlayer(playerInput.value); playerInput.value = ''; playerInput.focus(); });
+    playerInput.addEventListener('keydown', e => { if (e.key === 'Enter') { addPlayer(playerInput.value); playerInput.value = ''; } });
   </script>
 </body>
 </html>

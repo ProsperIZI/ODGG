@@ -36,8 +36,9 @@
       gap: 8px;
       flex-wrap: wrap;
       justify-content: center;
+      align-items: center;
     }
-    nav a {
+    nav a, nav button {
       padding: 8px 20px;
       border-radius: 50px;
       font-size: 0.85rem;
@@ -48,9 +49,74 @@
       border: 1px solid #2a2a40;
       color: #888;
       background: #1a1a2e;
+      cursor: pointer;
     }
-    nav a:hover { opacity: 0.75; }
+    nav a:hover, nav button:hover { opacity: 0.75; }
     nav a.active { background: #6c63ff; color: #fff; border-color: #6c63ff; }
+    nav .btn-login { border-color: #ffbe76; color: #ffbe76; }
+    nav .btn-logout { border-color: #6c63ff; color: #6c63ff; }
+
+    /* ADMIN */
+    .admin-only { display: none !important; }
+    body.is-admin .admin-only { display: flex !important; }
+    body.is-admin .admin-only-inline { display: inline-block !important; }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 16px;
+      padding: 32px;
+      width: 320px;
+      text-align: center;
+    }
+    .modal h3 {
+      font-size: 0.9rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 20px;
+    }
+    .modal input {
+      width: 100%;
+      background: #12121f;
+      border: 1px solid #2a2a40;
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .modal input:focus { border-color: #6c63ff; }
+    .modal .btn-confirm {
+      width: 100%;
+      padding: 12px;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .modal .btn-confirm:hover { opacity: 0.85; }
+    .modal .modal-error {
+      color: #ff6584;
+      font-size: 0.8rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
 
     /* CONTENT */
     .container {
@@ -209,11 +275,22 @@
     <a href="index.html">Empereur</a>
     <a href="comite.html" class="active">Comit&eacute;</a>
     <a href="cruche.html">Cruche</a>
+    <button class="btn-login" id="btnLogin">Admin</button>
   </nav>
 
+  <!-- MODAL LOGIN -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3>Connexion Admin</h3>
+      <input type="password" id="passInput" placeholder="Mot de passe..." autocomplete="off"/>
+      <button class="btn-confirm" id="btnPassOk">Se connecter</button>
+      <div class="modal-error" id="modalError"></div>
+    </div>
+  </div>
+
   <div class="container">
-    <div class="section-title">Ajouter un membre</div>
-    <div class="add-form">
+    <div class="section-title admin-only">Ajouter un membre</div>
+    <div class="add-form admin-only">
       <input id="nameInput" type="text" placeholder="Nom du membre..." maxlength="30"/>
       <input id="roleInput" type="text" placeholder="Poste..." maxlength="40"/>
       <button class="btn-add" id="btnAdd">+</button>
@@ -241,12 +318,74 @@
     const db = firebase.database();
     const membersRef = db.ref('comite/members');
 
+    // ── ADMIN AUTH ──
+    let isAdmin = false;
+    const btnLogin     = document.getElementById('btnLogin');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const passInput    = document.getElementById('passInput');
+    const btnPassOk    = document.getElementById('btnPassOk');
+    const modalError   = document.getElementById('modalError');
+
+    function setAdmin(val) {
+      isAdmin = val;
+      if (val) {
+        document.body.classList.add('is-admin');
+        btnLogin.textContent = 'Deconnexion';
+        btnLogin.className = 'btn-logout';
+        localStorage.setItem('odgg_admin', '1');
+      } else {
+        document.body.classList.remove('is-admin');
+        btnLogin.textContent = 'Admin';
+        btnLogin.className = 'btn-login';
+        localStorage.removeItem('odgg_admin');
+      }
+      renderMembers();
+    }
+
+    btnLogin.addEventListener('click', () => {
+      if (isAdmin) { setAdmin(false); return; }
+      modalOverlay.classList.add('open');
+      passInput.value = '';
+      modalError.textContent = '';
+      passInput.focus();
+    });
+
+    modalOverlay.addEventListener('click', e => {
+      if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+    });
+
+    function tryLogin() {
+      const pass = passInput.value;
+      db.ref('config/adminPass').once('value', snap => {
+        const stored = snap.val();
+        if (!stored) {
+          db.ref('config/adminPass').set('odgg');
+          if (pass === 'odgg') { setAdmin(true); modalOverlay.classList.remove('open'); }
+          else { modalError.textContent = 'Mot de passe incorrect'; }
+        } else if (pass === stored) {
+          setAdmin(true); modalOverlay.classList.remove('open');
+        } else {
+          modalError.textContent = 'Mot de passe incorrect';
+        }
+      });
+    }
+
+    btnPassOk.addEventListener('click', tryLogin);
+    passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+
+    if (localStorage.getItem('odgg_admin') === '1') {
+      db.ref('config/adminPass').once('value', () => setAdmin(true));
+    }
+
+    // ── DOM ──
     const nameInput    = document.getElementById('nameInput');
     const roleInput    = document.getElementById('roleInput');
     const btnAdd       = document.getElementById('btnAdd');
     const memberList   = document.getElementById('memberList');
     const emptyMsg     = document.getElementById('emptyMsg');
     const memberCount  = document.getElementById('memberCount');
+
+    let membersData = {};
 
     function escHtml(s) {
       return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -265,8 +404,6 @@
     function toggleRoleEdit(id, currentRole) {
       const existing = document.getElementById('role-edit-' + id);
       if (existing) { existing.remove(); return; }
-
-      // Fermer les autres edits ouverts
       document.querySelectorAll('.role-edit-row').forEach(el => el.remove());
 
       const card = document.querySelector(`[data-card="${id}"]`);
@@ -289,19 +426,17 @@
         membersRef.child(id).update({ role: input.value.trim() });
         row.remove();
       }
-
       btnSave.addEventListener('click', save);
       input.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
     }
 
     btnAdd.addEventListener('click', addMember);
-    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { roleInput.focus(); } });
+    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') roleInput.focus(); });
     roleInput.addEventListener('keydown', e => { if (e.key === 'Enter') addMember(); });
 
-    membersRef.on('value', snap => {
-      const data = snap.val() || {};
+    function renderMembers() {
+      const data = membersData;
       const entries = Object.entries(data).sort(([,a],[,b]) => a.createdAt - b.createdAt);
-
       memberList.innerHTML = '';
 
       if (entries.length === 0) {
@@ -315,27 +450,38 @@
         const card = document.createElement('div');
         card.className = 'member-card';
         card.setAttribute('data-card', id);
+
+        const adminBtns = isAdmin
+          ? `<div style="display:flex;gap:6px;align-items:center">
+               <button class="btn-edit-role" data-edit="${id}" data-role="${escHtml(role)}">Poste</button>
+               <button class="btn-remove" data-id="${id}">&#x2715;</button>
+             </div>`
+          : '';
+
         card.innerHTML = `
           <div class="member-info">
             <div class="member-name">${escHtml(m.name)}</div>
             <div class="member-role ${role ? '' : 'empty'}">${role ? escHtml(role) : 'Aucun poste'}</div>
             <div class="member-score">Score cruche : ${m.score || 0}</div>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center">
-            <button class="btn-edit-role" data-edit="${id}" data-role="${escHtml(role)}">Poste</button>
-            <button class="btn-remove" data-id="${id}">&#x2715;</button>
-          </div>`;
+          </div>${adminBtns}`;
         memberList.appendChild(card);
       });
 
-      memberList.querySelectorAll('.btn-remove').forEach(btn => {
-        btn.addEventListener('click', () => membersRef.child(btn.dataset.id).remove());
-      });
-      memberList.querySelectorAll('.btn-edit-role').forEach(btn => {
-        btn.addEventListener('click', () => toggleRoleEdit(btn.dataset.edit, btn.dataset.role));
-      });
+      if (isAdmin) {
+        memberList.querySelectorAll('.btn-remove').forEach(btn => {
+          btn.addEventListener('click', () => membersRef.child(btn.dataset.id).remove());
+        });
+        memberList.querySelectorAll('.btn-edit-role').forEach(btn => {
+          btn.addEventListener('click', () => toggleRoleEdit(btn.dataset.edit, btn.dataset.role));
+        });
+      }
 
       memberCount.textContent = `${entries.length} membre${entries.length > 1 ? 's' : ''}`;
+    }
+
+    membersRef.on('value', snap => {
+      membersData = snap.val() || {};
+      renderMembers();
     });
   </script>
 </body>
