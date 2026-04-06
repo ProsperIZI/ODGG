@@ -321,6 +321,83 @@
       padding: 20px 0;
       font-style: italic;
     }
+
+    /* CHECKLIST */
+    .checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      user-select: none;
+    }
+    .checklist-item:hover { border-color: #6c63ff; }
+    .checklist-item.checked { border-color: #6c63ff; background: #6c63ff11; }
+    .checklist-item.already-in {
+      opacity: 0.4;
+      cursor: default;
+      border-color: #2a2a40;
+    }
+    .checklist-cb {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 2px solid #444;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .checklist-item.checked .checklist-cb {
+      background: #6c63ff;
+      border-color: #6c63ff;
+    }
+    .checklist-item.checked .checklist-cb::after {
+      content: '\2713';
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .checklist-name { font-size: 0.9rem; font-weight: 600; }
+    .checklist-role { font-size: 0.7rem; color: #666; margin-left: auto; }
+    .checklist-empty {
+      color: #444;
+      font-size: 0.8rem;
+      text-align: center;
+      padding: 16px 0;
+      font-style: italic;
+    }
+    .btn-add-players {
+      width: 100%;
+      padding: 10px;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-add-players:hover { opacity: 0.85; }
+    .btn-add-players:disabled {
+      background: #2a2a40;
+      color: #555;
+      cursor: default;
+    }
   </style>
 </head>
 <body>
@@ -370,9 +447,9 @@
     <div class="ranking-section">
       <h2>Classement</h2>
 
-      <div class="add-player admin-only">
-        <input id="playerInput" type="text" placeholder="Nom du joueur&hellip;" maxlength="30"/>
-        <button class="btn-add" id="btnAdd">+</button>
+      <div id="addPlayersSection" style="display:none;margin-bottom:20px">
+        <div class="checklist" id="memberChecklist"></div>
+        <button class="btn-add-players" id="btnAddChecked" onclick="addCheckedPlayers()">Ajouter la s&eacute;lection</button>
       </div>
 
       <div class="active-players" id="activePlayers"></div>
@@ -400,6 +477,7 @@
     const db         = firebase.database();
     const timerRef   = db.ref('game/timer');
     const playersRef = db.ref('game/players');
+    const membersRef = db.ref('comite/members');
 
     // ── ADMIN AUTH ──
     let isAdmin = false;
@@ -409,22 +487,27 @@
     const btnPassOk   = document.getElementById('btnPassOk');
     const modalError  = document.getElementById('modalError');
 
+    const addPlayersSection = document.getElementById('addPlayersSection');
+    const memberChecklist  = document.getElementById('memberChecklist');
+
     function setAdmin(val) {
       isAdmin = val;
       if (val) {
         document.body.classList.add('is-admin');
         btnLogin.textContent = 'Deconnexion';
         btnLogin.className = 'btn-logout';
+        addPlayersSection.style.display = 'block';
         localStorage.setItem('odgg_admin', '1');
       } else {
         document.body.classList.remove('is-admin');
         btnLogin.textContent = 'Admin';
         btnLogin.className = 'btn-login';
+        addPlayersSection.style.display = 'none';
         localStorage.removeItem('odgg_admin');
       }
-      // Re-render pour afficher/masquer les boutons dans les cards
       renderActivePlayers();
       renderLeaderboard();
+      renderChecklist();
     }
 
     btnLogin.addEventListener('click', () => {
@@ -503,8 +586,6 @@
     const roundBadgeEl   = document.getElementById('roundBadge');
     const btnStart       = document.getElementById('btnStart');
     const btnReset       = document.getElementById('btnReset');
-    const playerInput    = document.getElementById('playerInput');
-    const btnAdd         = document.getElementById('btnAdd');
     const activePlayersEl = document.getElementById('activePlayers');
     const leaderboardEl   = document.getElementById('leaderboard');
     const emptyLbEl       = document.getElementById('emptyLb');
@@ -604,19 +685,66 @@
       updateDisplay();
     });
 
-    playersRef.on('value', snap => {
-      players = snap.val() || {};
-      renderActivePlayers();
-      renderLeaderboard();
-    });
-
     btnStart.addEventListener('click', () => { timerState.running ? fbPause() : fbStart(); });
     btnReset.addEventListener('click', fbReset);
 
-    function addPlayer(name) {
-      name = name.trim(); if (!name) return;
-      playersRef.push({ name, eliminated: false, tourStopped: null, order: Date.now() });
+    // ── CHECKLIST MEMBRES ──
+    let comiteMembers = {};
+    let checkedIds = new Set();
+
+    membersRef.on('value', snap => {
+      comiteMembers = snap.val() || {};
+      renderChecklist();
+    });
+
+    function getPlayerNames() {
+      return new Set(Object.values(players).map(p => p.name));
     }
+
+    function renderChecklist() {
+      memberChecklist.innerHTML = '';
+      const entries = Object.entries(comiteMembers).sort((a, b) => a[1].createdAt - b[1].createdAt);
+      const existing = getPlayerNames();
+
+      if (entries.length === 0) {
+        memberChecklist.innerHTML = '<div class="checklist-empty">Aucun membre dans le comit\u00e9</div>';
+        return;
+      }
+
+      entries.forEach(([id, m]) => {
+        const alreadyIn = existing.has(m.name);
+        const isChecked = checkedIds.has(id) && !alreadyIn;
+        const item = document.createElement('div');
+        item.className = 'checklist-item' + (isChecked ? ' checked' : '') + (alreadyIn ? ' already-in' : '');
+        item.innerHTML =
+          '<div class="checklist-cb"></div>' +
+          '<span class="checklist-name">' + escHtml(m.name) + '</span>' +
+          (m.role ? '<span class="checklist-role">' + escHtml(m.role) + '</span>' : '') +
+          (alreadyIn ? '<span class="checklist-role">d\u00e9j\u00e0 ajout\u00e9</span>' : '');
+
+        if (!alreadyIn) {
+          item.addEventListener('click', () => {
+            if (checkedIds.has(id)) checkedIds.delete(id);
+            else checkedIds.add(id);
+            renderChecklist();
+          });
+        }
+        memberChecklist.appendChild(item);
+      });
+    }
+
+    function addCheckedPlayers() {
+      const existing = getPlayerNames();
+      checkedIds.forEach(id => {
+        const m = comiteMembers[id];
+        if (m && !existing.has(m.name)) {
+          playersRef.push({ name: m.name, eliminated: false, tourStopped: null, order: Date.now() });
+        }
+      });
+      checkedIds.clear();
+      renderChecklist();
+    }
+
     function eliminatePlayer(id) { playersRef.child(id).update({ eliminated: true, tourStopped: timerState.globalTour }); }
     function removePlayer(id) { playersRef.child(id).remove(); }
 
@@ -681,8 +809,13 @@
       }
     }
 
-    btnAdd.addEventListener('click', () => { addPlayer(playerInput.value); playerInput.value = ''; playerInput.focus(); });
-    playerInput.addEventListener('keydown', e => { if (e.key === 'Enter') { addPlayer(playerInput.value); playerInput.value = ''; } });
+    // Re-render checklist quand les joueurs changent
+    playersRef.on('value', snap => {
+      players = snap.val() || {};
+      renderActivePlayers();
+      renderLeaderboard();
+      renderChecklist();
+    });
   </script>
 </body>
 </html>
