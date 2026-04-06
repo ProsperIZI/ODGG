@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Empereur ODGG</title>
+  <title>Comit&eacute; ODGG</title>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
@@ -20,7 +20,7 @@
       flex-direction: column;
       align-items: center;
       padding: 40px 20px;
-      gap: 40px;
+      gap: 32px;
     }
 
     h1 {
@@ -28,14 +28,6 @@
       letter-spacing: 0.3em;
       text-transform: uppercase;
       color: #666;
-    }
-
-    #fbStatus {
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      color: #444;
-      margin-top: -20px;
-      transition: color 0.3s;
     }
 
     /* NAV */
@@ -63,10 +55,6 @@
     nav a.active { background: #6c63ff; color: #fff; border-color: #6c63ff; }
     nav .btn-login { border-color: #ffbe76; color: #ffbe76; }
     nav .btn-logout { border-color: #6c63ff; color: #6c63ff; }
-
-    /* ADMIN */
-    .admin-only { display: none !important; }
-    body.is-admin .admin-only { display: flex !important; }
 
     /* MODAL */
     .modal-overlay {
@@ -106,7 +94,7 @@
       text-align: center;
     }
     .modal input:focus { border-color: #6c63ff; }
-    .modal .btn-confirm {
+    .modal-btn {
       width: 100%;
       padding: 12px;
       background: #6c63ff;
@@ -117,77 +105,21 @@
       font-weight: 600;
       cursor: pointer;
     }
-    .modal .btn-confirm:hover { opacity: 0.85; }
-    .modal .modal-error {
+    .modal-btn:hover { opacity: 0.85; }
+    .modal-error {
       color: #ff6584;
       font-size: 0.8rem;
       margin-top: 10px;
       min-height: 1.2em;
     }
 
-    /* ─── LAYOUT ─── */
-    .layout {
-      display: flex;
-      gap: 48px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      justify-content: center;
+    /* CONTENT */
+    .container {
       width: 100%;
-      max-width: 900px;
+      max-width: 500px;
     }
 
-    /* ─── TIMER ─── */
-    .timer-section { text-align: center; }
-
-    .timer-wrapper {
-      position: relative;
-      width: 280px;
-      height: 280px;
-      margin: 0 auto 28px;
-    }
-
-    svg { transform: rotate(-90deg); width: 280px; height: 280px; }
-
-    .track { fill: none; stroke: #1a1a2e; stroke-width: 12; }
-    .progress {
-      fill: none; stroke: #6c63ff; stroke-width: 12; stroke-linecap: round;
-      stroke-dasharray: 754;
-      stroke-dashoffset: 0;
-      transition: stroke-dashoffset 0.5s linear, stroke 0.5s;
-    }
-    .progress.warn   { stroke: #ffbe76; }
-    .progress.danger { stroke: #ff6584; }
-
-    .time-display {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%); text-align: center;
-    }
-    .time-text { font-size: 3.5rem; font-weight: 700; letter-spacing: 0.05em; line-height: 1; }
-    .round-label { font-size: 0.8rem; color: #666; margin-top: 8px; letter-spacing: 0.15em; }
-    .round-badge { color: #6c63ff; font-weight: 700; }
-
-    .controls { display: flex; gap: 12px; justify-content: center; }
-
-    .controls button {
-      padding: 11px 28px; border: none; border-radius: 50px;
-      font-size: 0.95rem; font-weight: 600; cursor: pointer;
-      letter-spacing: 0.04em; transition: transform 0.1s, opacity 0.2s;
-    }
-    .controls button:active { transform: scale(0.96); }
-
-    #btnStart { background: #6c63ff; color: #fff; }
-    #btnStart:hover { opacity: 0.85; }
-    #btnReset { background: #1a1a2e; color: #888; border: 1px solid #2a2a40; }
-    #btnReset:hover { opacity: 0.75; }
-
-    /* ─── CLASSEMENT ─── */
-    .ranking-section {
-      flex: 1;
-      min-width: 280px;
-      max-width: 420px;
-    }
-
-    .ranking-section h2 {
+    .section-title {
       font-size: 0.85rem;
       letter-spacing: 0.25em;
       text-transform: uppercase;
@@ -195,14 +127,15 @@
       margin-bottom: 16px;
     }
 
-    .add-player {
+    .add-form {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
     }
-
-    .add-player input {
+    .add-form input {
       flex: 1;
+      min-width: 120px;
       background: #1a1a2e;
       border: 1px solid #2a2a40;
       border-radius: 10px;
@@ -212,8 +145,8 @@
       outline: none;
       transition: border-color 0.2s;
     }
-    .add-player input:focus { border-color: #6c63ff; }
-    .add-player input::placeholder { color: #444; }
+    .add-form input:focus { border-color: #6c63ff; }
+    .add-form input::placeholder { color: #444; }
 
     .btn-add {
       background: #6c63ff;
@@ -227,239 +160,134 @@
     }
     .btn-add:hover { opacity: 0.85; }
 
-    .active-players {
+    .member-list {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      margin-bottom: 24px;
     }
-
-    .player-card {
+    .member-card {
       display: flex;
       align-items: center;
       justify-content: space-between;
       background: #1a1a2e;
       border: 1px solid #2a2a40;
       border-radius: 12px;
-      padding: 10px 14px;
-      transition: border-color 0.2s;
+      padding: 12px 16px;
     }
+    .member-info { display: flex; flex-direction: column; }
+    .member-name { font-size: 0.95rem; font-weight: 600; }
+    .member-role {
+      font-size: 0.75rem;
+      color: #9d97ff;
+      margin-top: 2px;
+      background: #6c63ff22;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-block;
+    }
+    .member-role.empty { color: #444; background: none; }
+    .member-score { font-size: 0.7rem; color: #555; margin-top: 4px; }
 
-    .player-name { font-size: 0.95rem; font-weight: 600; }
-    .player-status { font-size: 0.75rem; color: #555; margin-top: 2px; }
+    .btn-edit-role {
+      background: #1a1a2e;
+      color: #888;
+      border: 1px solid #2a2a40;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: opacity 0.2s, border-color 0.2s;
+    }
+    .btn-edit-role:hover { border-color: #6c63ff; color: #fff; }
 
-    .btn-stop {
-      background: #ff6584;
+    .role-edit-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      align-items: center;
+    }
+    .role-edit-input {
+      background: #12121f;
+      border: 1px solid #6c63ff;
+      border-radius: 8px;
+      padding: 5px 10px;
+      color: #fff;
+      font-size: 0.8rem;
+      outline: none;
+      width: 140px;
+    }
+    .btn-save-role {
+      background: #6c63ff;
       color: #fff;
       border: none;
       border-radius: 8px;
-      padding: 6px 14px;
-      font-size: 0.8rem;
-      font-weight: 700;
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.2s;
-      white-space: nowrap;
     }
-    .btn-stop:hover { opacity: 0.8; }
-    .btn-stop:disabled {
+    .btn-save-role:hover { opacity: 0.85; }
+
+    .btn-remove {
       background: #2a2a40;
-      color: #555;
-      cursor: default;
+      color: #888;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: opacity 0.2s, background 0.2s;
     }
+    .btn-remove:hover { background: #ff6584; color: #fff; }
 
-    .leaderboard-title {
-      font-size: 0.8rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: #555;
-      margin-bottom: 10px;
-    }
-
-    .leaderboard {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .lb-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: #1a1a2e;
-      border: 1px solid #2a2a40;
-      border-radius: 10px;
-      padding: 9px 14px;
-    }
-
-    .lb-rank {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: #444;
-      width: 22px;
-      text-align: center;
-    }
-    .lb-row:nth-child(1) .lb-rank { color: #ffd700; font-size: 1rem; }
-    .lb-row:nth-child(2) .lb-rank { color: #c0c0c0; font-size: 0.95rem; }
-    .lb-row:nth-child(3) .lb-rank { color: #cd7f32; font-size: 0.9rem; }
-
-    .lb-name { flex: 1; font-size: 0.9rem; font-weight: 600; }
-    .lb-tour {
-      font-size: 0.8rem;
-      background: #6c63ff22;
-      color: #9d97ff;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-    .lb-tour.loop { background: #ff658422; color: #ff6584; }
-
-    .empty-lb {
+    .empty-msg {
       color: #333;
       font-size: 0.85rem;
       text-align: center;
-      padding: 20px 0;
+      padding: 32px 0;
       font-style: italic;
     }
-
-    /* CHECKLIST */
-    .checklist {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 12px;
-      max-height: 280px;
-      overflow-y: auto;
-    }
-    .checklist-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #1a1a2e;
-      border: 1px solid #2a2a40;
-      border-radius: 10px;
-      padding: 10px 14px;
-      cursor: pointer;
-      transition: border-color 0.2s;
-      user-select: none;
-    }
-    .checklist-item:hover { border-color: #6c63ff; }
-    .checklist-item.checked { border-color: #6c63ff; background: #6c63ff11; }
-    .checklist-item.already-in {
-      opacity: 0.4;
-      cursor: default;
-      border-color: #2a2a40;
-    }
-    .checklist-cb {
-      width: 18px;
-      height: 18px;
-      border-radius: 4px;
-      border: 2px solid #444;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    .checklist-item.checked .checklist-cb {
-      background: #6c63ff;
-      border-color: #6c63ff;
-    }
-    .checklist-item.checked .checklist-cb::after {
-      content: '\2713';
-      color: #fff;
+    .member-count {
       font-size: 0.75rem;
-      font-weight: 700;
-    }
-    .checklist-name { font-size: 0.9rem; font-weight: 600; }
-    .checklist-role { font-size: 0.7rem; color: #666; margin-left: auto; }
-    .checklist-empty {
       color: #444;
-      font-size: 0.8rem;
       text-align: center;
-      padding: 16px 0;
-      font-style: italic;
-    }
-    .btn-add-players {
-      width: 100%;
-      padding: 10px;
-      background: #6c63ff;
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    .btn-add-players:hover { opacity: 0.85; }
-    .btn-add-players:disabled {
-      background: #2a2a40;
-      color: #555;
-      cursor: default;
+      margin-top: 16px;
     }
   </style>
 </head>
 <body>
 
-  <h1>Empereur ODGG</h1>
+  <h1>Comit&eacute; ODGG</h1>
 
   <nav>
-    <a href="index.html" class="active">Empereur</a>
-    <a href="comite.html">Comit&eacute;</a>
+    <a href="empereur.html">Empereur</a>
+    <a href="index.html" class="active">Comit&eacute;</a>
     <a href="cruche.html">Cruche</a>
-    <button class="btn-login" id="btnLogin">Admin</button>
+    <button class="btn-login" id="btnLogin" onclick="onLoginClick()">Admin</button>
   </nav>
 
-  <div id="fbStatus">&#9679; connexion&hellip;</div>
-
-  <!-- MODAL LOGIN -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
       <h3>Connexion Admin</h3>
       <input type="password" id="passInput" placeholder="Mot de passe..." autocomplete="off"/>
-      <button class="btn-confirm" id="btnPassOk">Se connecter</button>
+      <button class="modal-btn" id="btnPassOk" onclick="tryLogin()">Se connecter</button>
       <div class="modal-error" id="modalError"></div>
     </div>
   </div>
 
-  <div class="layout">
-
-    <!-- TIMER -->
-    <div class="timer-section">
-      <div class="timer-wrapper">
-        <svg viewBox="0 0 280 280">
-          <circle class="track"    cx="140" cy="140" r="120"/>
-          <circle class="progress" id="progressCircle" cx="140" cy="140" r="120"/>
-        </svg>
-        <div class="time-display">
-          <div class="time-text" id="timeText">15:00</div>
-          <div class="round-label">TOUR <span class="round-badge" id="roundBadge">1 / 15</span></div>
-        </div>
-      </div>
-      <div class="controls admin-only">
-        <button id="btnStart">D&eacute;marrer</button>
-        <button id="btnReset">R&eacute;initialiser</button>
-      </div>
+  <div class="container">
+    <div class="section-title" id="addTitle" style="display:none">Ajouter un membre</div>
+    <div class="add-form" id="addForm" style="display:none">
+      <input id="nameInput" type="text" placeholder="Nom du membre..." maxlength="30"/>
+      <input id="roleInput" type="text" placeholder="Poste..." maxlength="40"/>
+      <button class="btn-add" id="btnAdd">+</button>
     </div>
 
-    <!-- CLASSEMENT -->
-    <div class="ranking-section">
-      <h2>Classement</h2>
-
-      <div id="addPlayersSection" style="display:none;margin-bottom:20px">
-        <div class="checklist" id="memberChecklist"></div>
-        <button class="btn-add-players" id="btnAddChecked" onclick="addCheckedPlayers()">Ajouter la s&eacute;lection</button>
-      </div>
-
-      <div class="active-players" id="activePlayers"></div>
-
-      <div class="leaderboard-title">&Eacute;limin&eacute;s</div>
-      <div class="leaderboard" id="leaderboard">
-        <div class="empty-lb" id="emptyLb">Aucun joueur &eacute;limin&eacute; pour l'instant</div>
-      </div>
+    <div class="section-title">Membres</div>
+    <div class="member-list" id="memberList">
+      <div class="empty-msg" id="emptyMsg">Aucun membre pour l'instant</div>
     </div>
-
+    <div class="member-count" id="memberCount"></div>
   </div>
 
   <script>
@@ -474,68 +302,69 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-    const db         = firebase.database();
-    const timerRef   = db.ref('game/timer');
-    const playersRef = db.ref('game/players');
-    const membersRef = db.ref('comite/members');
+    var db = firebase.database();
+    var membersRef = db.ref('comite/members');
 
-    // ── ADMIN AUTH ──
-    let isAdmin = false;
-    const btnLogin    = document.getElementById('btnLogin');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const passInput   = document.getElementById('passInput');
-    const btnPassOk   = document.getElementById('btnPassOk');
-    const modalError  = document.getElementById('modalError');
+    // ── ELEMENTS ──
+    var btnLogin     = document.getElementById('btnLogin');
+    var modalOverlay = document.getElementById('modalOverlay');
+    var passInput    = document.getElementById('passInput');
+    var btnPassOk    = document.getElementById('btnPassOk');
+    var modalError   = document.getElementById('modalError');
+    var addTitle     = document.getElementById('addTitle');
+    var addForm      = document.getElementById('addForm');
+    var nameInput    = document.getElementById('nameInput');
+    var roleInput    = document.getElementById('roleInput');
+    var btnAdd       = document.getElementById('btnAdd');
+    var memberList   = document.getElementById('memberList');
+    var emptyMsg     = document.getElementById('emptyMsg');
+    var memberCount  = document.getElementById('memberCount');
 
-    const addPlayersSection = document.getElementById('addPlayersSection');
-    const memberChecklist  = document.getElementById('memberChecklist');
+    var isAdmin = false;
+    var membersData = {};
 
+    // ── ADMIN ──
     function setAdmin(val) {
       isAdmin = val;
       if (val) {
         document.body.classList.add('is-admin');
         btnLogin.textContent = 'Deconnexion';
         btnLogin.className = 'btn-logout';
-        addPlayersSection.style.display = 'block';
+        addTitle.style.display = 'block';
+        addForm.style.display = 'flex';
         localStorage.setItem('odgg_admin', '1');
       } else {
         document.body.classList.remove('is-admin');
         btnLogin.textContent = 'Admin';
         btnLogin.className = 'btn-login';
-        addPlayersSection.style.display = 'none';
+        addTitle.style.display = 'none';
+        addForm.style.display = 'none';
         localStorage.removeItem('odgg_admin');
       }
-      renderActivePlayers();
-      renderLeaderboard();
-      renderChecklist();
+      renderMembers();
     }
 
-    btnLogin.addEventListener('click', () => {
+    function onLoginClick() {
       if (isAdmin) { setAdmin(false); return; }
       modalOverlay.classList.add('open');
       passInput.value = '';
       modalError.textContent = '';
-      passInput.focus();
-    });
+      setTimeout(function() { passInput.focus(); }, 100);
+    }
 
-    modalOverlay.addEventListener('click', e => {
+    modalOverlay.addEventListener('click', function(e) {
       if (e.target === modalOverlay) modalOverlay.classList.remove('open');
     });
 
     function tryLogin() {
-      const pass = passInput.value;
-      db.ref('config/adminPass').once('value', snap => {
-        const stored = snap.val();
+      var pass = passInput.value;
+      db.ref('config/adminPass').once('value', function(snap) {
+        var stored = snap.val();
         if (!stored) {
-          // Premier lancement : on cree le mot de passe par defaut
           db.ref('config/adminPass').set('odgg');
-          if (pass === 'odgg') {
-            setAdmin(true);
-            modalOverlay.classList.remove('open');
-          } else {
-            modalError.textContent = 'Mot de passe incorrect';
-          }
-        } else if (pass === stored) {
+          stored = 'odgg';
+        }
+        if (pass === stored) {
           setAdmin(true);
           modalOverlay.classList.remove('open');
         } else {
@@ -544,277 +373,121 @@
       });
     }
 
-    btnPassOk.addEventListener('click', tryLogin);
-    passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+    passInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') tryLogin();
+    });
 
     // Restaurer session
     if (localStorage.getItem('odgg_admin') === '1') {
-      db.ref('config/adminPass').once('value', () => setAdmin(true));
+      db.ref('config/adminPass').once('value', function() { setAdmin(true); });
     }
 
-    // ── CONNEXION ──
-    let serverOffset = 0;
-    db.ref('.info/serverTimeOffset').on('value', s => { serverOffset = s.val() || 0; });
-    const serverNow = () => Date.now() + serverOffset;
-
-    const fbStatusEl = document.getElementById('fbStatus');
-    db.ref('.info/connected').on('value', snap => {
-      if (snap.val()) {
-        fbStatusEl.textContent = '\u25CF en ligne';
-        fbStatusEl.style.color = '#6c63ff';
-      } else {
-        fbStatusEl.textContent = '\u25CF hors ligne';
-        fbStatusEl.style.color = '#ff6584';
-      }
-    });
-
-    // ── CONSTANTES ──
-    const CIRCUMFERENCE = 2 * Math.PI * 120;
-
-    // ── STATE LOCAL ──
-    let timerState = {
-      running: false, endTime: null, secondsLeft: 15 * 60,
-      totalSeconds: 15 * 60, globalTour: 1, loopCount: 0, currentMinutes: 15
-    };
-    let players = {};
-    let localInterval = null;
-    let advancePending = false;
-
-    // ── DOM ──
-    const progressEl     = document.getElementById('progressCircle');
-    const timeTextEl     = document.getElementById('timeText');
-    const roundBadgeEl   = document.getElementById('roundBadge');
-    const btnStart       = document.getElementById('btnStart');
-    const btnReset       = document.getElementById('btnReset');
-    const activePlayersEl = document.getElementById('activePlayers');
-    const leaderboardEl   = document.getElementById('leaderboard');
-    const emptyLbEl       = document.getElementById('emptyLb');
-
-    progressEl.style.strokeDasharray = CIRCUMFERENCE;
-
-    function formatTime(s) {
-      const m = Math.floor(s / 60), sec = s % 60;
-      return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-    }
-
-    function updateProgress(seconds, total) {
-      const fraction = total > 0 ? seconds / total : 0;
-      progressEl.style.strokeDashoffset = CIRCUMFERENCE * (1 - fraction);
-      progressEl.classList.remove('warn', 'danger');
-      if (fraction <= 0.25) progressEl.classList.add('danger');
-      else if (fraction <= 0.5) progressEl.classList.add('warn');
-    }
-
-    function tourLabel(tour) {
-      if (tour <= 15) return `Tour ${tour} (${16 - tour} min)`;
-      return `Tour ${tour} (boucle ${tour - 15})`;
-    }
-
+    // ─��� UTILS ─��
     function escHtml(s) {
       return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    function computeSeconds() {
-      if (timerState.running && timerState.endTime) {
-        return Math.max(0, Math.round((timerState.endTime - serverNow()) / 1000));
+    function addMember() {
+      var name = nameInput.value.trim();
+      if (!name) return;
+      var role = roleInput.value.trim();
+      membersRef.push({ name: name, role: role || '', score: 0, createdAt: Date.now() });
+      nameInput.value = '';
+      roleInput.value = '';
+      nameInput.focus();
+    }
+
+    function toggleRoleEdit(id, currentRole) {
+      var existing = document.getElementById('role-edit-' + id);
+      if (existing) { existing.remove(); return; }
+      var rows = document.querySelectorAll('.role-edit-row');
+      for (var i = 0; i < rows.length; i++) rows[i].remove();
+
+      var card = document.querySelector('[data-card="' + id + '"]');
+      if (!card) return;
+      var info = card.querySelector('.member-info');
+
+      var row = document.createElement('div');
+      row.className = 'role-edit-row';
+      row.id = 'role-edit-' + id;
+      row.innerHTML =
+        '<input class="role-edit-input" type="text" value="' + escHtml(currentRole) + '" placeholder="Poste..." maxlength="40"/>' +
+        '<button class="btn-save-role">OK</button>';
+      info.appendChild(row);
+
+      var inp = row.querySelector('input');
+      var btn = row.querySelector('.btn-save-role');
+      inp.focus();
+
+      function save() {
+        membersRef.child(id).update({ role: inp.value.trim() });
+        row.remove();
       }
-      return timerState.secondsLeft ?? 0;
+      btn.addEventListener('click', save);
+      inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') save(); });
     }
 
-    function updateDisplay() {
-      const seconds = computeSeconds();
-      timeTextEl.textContent = formatTime(seconds);
-      updateProgress(seconds, timerState.totalSeconds);
+    btnAdd.addEventListener('click', addMember);
+    nameInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') roleInput.focus(); });
+    roleInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') addMember(); });
 
-      const isStart = !timerState.running && timerState.globalTour === 1 && seconds === timerState.totalSeconds;
-      btnStart.textContent = timerState.running ? 'Pause' : (isStart ? 'D\u00e9marrer' : 'Reprendre');
-
-      if (timerState.globalTour <= 15) {
-        roundBadgeEl.textContent = `${timerState.globalTour} / 15`;
-      } else {
-        roundBadgeEl.textContent = `\u221E boucle ${timerState.loopCount}`;
-      }
-
-      if (timerState.running && seconds <= 0 && !advancePending) {
-        advancePending = true;
-        advanceRound();
-      }
-    }
-
-    function startLocalInterval() { stopLocalInterval(); localInterval = setInterval(updateDisplay, 500); }
-    function stopLocalInterval() { if (localInterval) { clearInterval(localInterval); localInterval = null; } }
-
-    function fbStart() {
-      const seconds = computeSeconds();
-      timerRef.update({ running: true, endTime: serverNow() + seconds * 1000, secondsLeft: seconds });
-    }
-    function fbPause() {
-      const seconds = computeSeconds();
-      timerRef.update({ running: false, secondsLeft: seconds, endTime: null });
-    }
-    function fbReset() {
-      timerRef.set({ running: false, endTime: null, secondsLeft: 15*60, totalSeconds: 15*60, globalTour: 1, loopCount: 0, currentMinutes: 15 });
-      const updates = {};
-      Object.keys(players).forEach(id => { updates[`${id}/eliminated`] = false; updates[`${id}/tourStopped`] = null; });
-      if (Object.keys(updates).length) playersRef.update(updates);
-    }
-
-    function advanceRound() {
-      timerRef.transaction(timer => {
-        if (!timer || !timer.running) return;
-        const now = serverNow();
-        if (timer.endTime > now + 1000) return;
-        let { globalTour, currentMinutes, loopCount } = timer;
-        globalTour++;
-        if (currentMinutes > 1) currentMinutes--; else loopCount++;
-        const newSeconds = currentMinutes * 60;
-        return { ...timer, globalTour, currentMinutes, loopCount, secondsLeft: newSeconds, totalSeconds: newSeconds, endTime: now + newSeconds * 1000 };
-      }, () => { advancePending = false; });
-    }
-
-    timerRef.once('value', snap => {
-      if (!snap.exists()) {
-        timerRef.set({ running: false, endTime: null, secondsLeft: 15*60, totalSeconds: 15*60, globalTour: 1, loopCount: 0, currentMinutes: 15 });
-      }
-    });
-
-    timerRef.on('value', snap => {
-      const data = snap.val(); if (!data) return;
-      timerState = data;
-      if (timerState.running) startLocalInterval(); else stopLocalInterval();
-      updateDisplay();
-    });
-
-    btnStart.addEventListener('click', () => { timerState.running ? fbPause() : fbStart(); });
-    btnReset.addEventListener('click', fbReset);
-
-    // ── CHECKLIST MEMBRES ──
-    let comiteMembers = {};
-    let checkedIds = new Set();
-
-    membersRef.on('value', snap => {
-      comiteMembers = snap.val() || {};
-      renderChecklist();
-    });
-
-    function getPlayerNames() {
-      return new Set(Object.values(players).map(p => p.name));
-    }
-
-    function renderChecklist() {
-      memberChecklist.innerHTML = '';
-      const entries = Object.entries(comiteMembers).sort((a, b) => a[1].createdAt - b[1].createdAt);
-      const existing = getPlayerNames();
+    // ── RENDER ──
+    function renderMembers() {
+      var data = membersData;
+      var entries = Object.entries(data).sort(function(a, b) { return a[1].createdAt - b[1].createdAt; });
+      memberList.innerHTML = '';
 
       if (entries.length === 0) {
-        memberChecklist.innerHTML = '<div class="checklist-empty">Aucun membre dans le comit\u00e9</div>';
+        memberList.appendChild(emptyMsg);
+        memberCount.textContent = '';
         return;
       }
 
-      entries.forEach(([id, m]) => {
-        const alreadyIn = existing.has(m.name);
-        const isChecked = checkedIds.has(id) && !alreadyIn;
-        const item = document.createElement('div');
-        item.className = 'checklist-item' + (isChecked ? ' checked' : '') + (alreadyIn ? ' already-in' : '');
-        item.innerHTML =
-          '<div class="checklist-cb"></div>' +
-          '<span class="checklist-name">' + escHtml(m.name) + '</span>' +
-          (m.role ? '<span class="checklist-role">' + escHtml(m.role) + '</span>' : '') +
-          (alreadyIn ? '<span class="checklist-role">d\u00e9j\u00e0 ajout\u00e9</span>' : '');
+      for (var i = 0; i < entries.length; i++) {
+        var id = entries[i][0];
+        var m = entries[i][1];
+        var role = m.role || '';
+        var card = document.createElement('div');
+        card.className = 'member-card';
+        card.setAttribute('data-card', id);
 
-        if (!alreadyIn) {
-          item.addEventListener('click', () => {
-            if (checkedIds.has(id)) checkedIds.delete(id);
-            else checkedIds.add(id);
-            renderChecklist();
-          });
-        }
-        memberChecklist.appendChild(item);
-      });
-    }
-
-    function addCheckedPlayers() {
-      const existing = getPlayerNames();
-      checkedIds.forEach(id => {
-        const m = comiteMembers[id];
-        if (m && !existing.has(m.name)) {
-          playersRef.push({ name: m.name, eliminated: false, tourStopped: null, order: Date.now() });
-        }
-      });
-      checkedIds.clear();
-      renderChecklist();
-    }
-
-    function eliminatePlayer(id) { playersRef.child(id).update({ eliminated: true, tourStopped: timerState.globalTour }); }
-    function removePlayer(id) { playersRef.child(id).remove(); }
-
-    function renderActivePlayers() {
-      activePlayersEl.innerHTML = '';
-      const sorted = Object.entries(players).sort(([,a],[,b]) => a.order - b.order);
-      const active = sorted.filter(([,p]) => !p.eliminated);
-      if (sorted.length === 0) return;
-
-      active.forEach(([id, p]) => {
-        const card = document.createElement('div');
-        card.className = 'player-card';
-        const btns = isAdmin
-          ? `<div style="display:flex;gap:8px;align-items:center">
-               <button class="btn-stop" data-id="${id}">Arr\u00eat</button>
-               <button class="btn-stop" style="background:#2a2a40;font-size:1rem;padding:6px 10px" data-remove="${id}" title="Supprimer">\u2715</button>
-             </div>`
+        var adminBtns = isAdmin
+          ? '<div style="display:flex;gap:6px;align-items:center">' +
+              '<button class="btn-edit-role" data-edit="' + id + '" data-role="' + escHtml(role) + '">Poste</button>' +
+              '<button class="btn-remove" data-id="' + id + '">&#x2715;</button>' +
+            '</div>'
           : '';
-        card.innerHTML = `
-          <div>
-            <div class="player-name">${escHtml(p.name)}</div>
-            <div class="player-status">En course \u2014 ${tourLabel(timerState.globalTour)}</div>
-          </div>${btns}`;
-        activePlayersEl.appendChild(card);
-      });
+
+        card.innerHTML =
+          '<div class="member-info">' +
+            '<div class="member-name">' + escHtml(m.name) + '</div>' +
+            '<div class="member-role ' + (role ? '' : 'empty') + '">' + (role ? escHtml(role) : 'Aucun poste') + '</div>' +
+            '<div class="member-score">Score cruche : ' + (m.score || 0) + '</div>' +
+          '</div>' + adminBtns;
+        memberList.appendChild(card);
+      }
 
       if (isAdmin) {
-        activePlayersEl.querySelectorAll('.btn-stop[data-id]').forEach(btn => {
-          btn.addEventListener('click', () => eliminatePlayer(btn.dataset.id));
-        });
-        activePlayersEl.querySelectorAll('[data-remove]').forEach(btn => {
-          btn.addEventListener('click', () => removePlayer(btn.dataset.remove));
-        });
+        var removeBtns = memberList.querySelectorAll('.btn-remove');
+        for (var j = 0; j < removeBtns.length; j++) {
+          (function(btn) {
+            btn.addEventListener('click', function() { membersRef.child(btn.dataset.id).remove(); });
+          })(removeBtns[j]);
+        }
+        var editBtns = memberList.querySelectorAll('.btn-edit-role');
+        for (var k = 0; k < editBtns.length; k++) {
+          (function(btn) {
+            btn.addEventListener('click', function() { toggleRoleEdit(btn.dataset.edit, btn.dataset.role); });
+          })(editBtns[k]);
+        }
       }
+
+      memberCount.textContent = entries.length + ' membre' + (entries.length > 1 ? 's' : '');
     }
 
-    function renderLeaderboard() {
-      leaderboardEl.innerHTML = '';
-      const elim = Object.entries(players).filter(([,p]) => p.eliminated).sort(([,a],[,b]) => a.tourStopped - b.tourStopped);
-
-      if (elim.length === 0) { leaderboardEl.appendChild(emptyLbEl); return; }
-
-      const medals = ['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49'];
-      elim.forEach(([id, p], i) => {
-        const isLoop = p.tourStopped > 15;
-        const row = document.createElement('div');
-        row.className = 'lb-row';
-        const removeBtn = isAdmin
-          ? `<button style="background:none;border:none;color:#333;cursor:pointer;font-size:0.9rem;padding:2px 4px" title="Retirer" data-remove-lb="${id}">\u2715</button>`
-          : '';
-        row.innerHTML = `
-          <div class="lb-rank">${medals[i] ?? (i + 1)}</div>
-          <div class="lb-name">${escHtml(p.name)}</div>
-          <div class="lb-tour ${isLoop ? 'loop' : ''}">${tourLabel(p.tourStopped)}</div>${removeBtn}`;
-        leaderboardEl.appendChild(row);
-      });
-
-      if (isAdmin) {
-        leaderboardEl.querySelectorAll('[data-remove-lb]').forEach(btn => {
-          btn.addEventListener('click', () => removePlayer(btn.dataset.removeLb));
-        });
-      }
-    }
-
-    // Re-render checklist quand les joueurs changent
-    playersRef.on('value', snap => {
-      players = snap.val() || {};
-      renderActivePlayers();
-      renderLeaderboard();
-      renderChecklist();
+    membersRef.on('value', function(snap) {
+      membersData = snap.val() || {};
+      renderMembers();
     });
   </script>
 </body>
