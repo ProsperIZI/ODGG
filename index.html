@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Empereur ODGG</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f0f1a;
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      gap: 40px;
+    }
+
+    h1 {
+      font-size: 1rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #666;
+    }
+
+    /* ─── LAYOUT ─── */
+    .layout {
+      display: flex;
+      gap: 48px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    /* ─── TIMER ─── */
+    .timer-section { text-align: center; }
+
+    .timer-wrapper {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 0 auto 28px;
+    }
+
+    svg { transform: rotate(-90deg); width: 280px; height: 280px; }
+
+    .track { fill: none; stroke: #1a1a2e; stroke-width: 12; }
+    .progress {
+      fill: none; stroke: #6c63ff; stroke-width: 12; stroke-linecap: round;
+      stroke-dasharray: 754;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear, stroke 0.5s;
+    }
+    .progress.warn   { stroke: #ffbe76; }
+    .progress.danger { stroke: #ff6584; }
+
+    .time-display {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); text-align: center;
+    }
+    .time-text { font-size: 3.5rem; font-weight: 700; letter-spacing: 0.05em; line-height: 1; }
+    .round-label { font-size: 0.8rem; color: #666; margin-top: 8px; letter-spacing: 0.15em; }
+    .round-badge { color: #6c63ff; font-weight: 700; }
+
+    .controls { display: flex; gap: 12px; justify-content: center; }
+
+    button {
+      padding: 11px 28px; border: none; border-radius: 50px;
+      font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      letter-spacing: 0.04em; transition: transform 0.1s, opacity 0.2s;
+    }
+    button:active { transform: scale(0.96); }
+
+    #btnStart { background: #6c63ff; color: #fff; }
+    #btnStart:hover { opacity: 0.85; }
+    #btnReset { background: #1a1a2e; color: #888; border: 1px solid #2a2a40; }
+    #btnReset:hover { opacity: 0.75; }
+
+    /* ─── CLASSEMENT ─── */
+    .ranking-section {
+      flex: 1;
+      min-width: 280px;
+      max-width: 420px;
+    }
+
+    .ranking-section h2 {
+      font-size: 0.85rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 16px;
+    }
+
+    /* Ajout joueur */
+    .add-player {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .add-player input {
+      flex: 1;
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .add-player input:focus { border-color: #6c63ff; }
+    .add-player input::placeholder { color: #444; }
+
+    .btn-add {
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-add:hover { opacity: 0.85; }
+
+    /* Liste joueurs actifs */
+    .active-players {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .player-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 12px;
+      padding: 10px 14px;
+      transition: border-color 0.2s;
+    }
+    .player-card.eliminated { opacity: 0.35; }
+
+    .player-name { font-size: 0.95rem; font-weight: 600; }
+    .player-status { font-size: 0.75rem; color: #555; margin-top: 2px; }
+
+    .btn-stop {
+      background: #ff6584;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    .btn-stop:hover { opacity: 0.8; }
+    .btn-stop:disabled {
+      background: #2a2a40;
+      color: #555;
+      cursor: default;
+    }
+
+    /* Leaderboard */
+    .leaderboard-title {
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .leaderboard {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .lb-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 10px;
+      padding: 9px 14px;
+    }
+
+    .lb-rank {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #444;
+      width: 22px;
+      text-align: center;
+    }
+    .lb-row:nth-child(1) .lb-rank { color: #ffd700; font-size: 1rem; }
+    .lb-row:nth-child(2) .lb-rank { color: #c0c0c0; font-size: 0.95rem; }
+    .lb-row:nth-child(3) .lb-rank { color: #cd7f32; font-size: 0.9rem; }
+
+    .lb-name { flex: 1; font-size: 0.9rem; font-weight: 600; }
+    .lb-tour {
+      font-size: 0.8rem;
+      background: #6c63ff22;
+      color: #9d97ff;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .lb-tour.loop { background: #ff658422; color: #ff6584; }
+
+    .empty-lb {
+      color: #333;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 20px 0;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Empereur ODGG</h1>
+
+  <div class="layout">
+
+    <!-- ─── TIMER ─── -->
+    <div class="timer-section">
+      <div class="timer-wrapper">
+        <svg viewBox="0 0 280 280">
+          <circle class="track"    cx="140" cy="140" r="120"/>
+          <circle class="progress" id="progressCircle" cx="140" cy="140" r="120"/>
+        </svg>
+        <div class="time-display">
+          <div class="time-text" id="timeText">15:00</div>
+          <div class="round-label">TOUR <span class="round-badge" id="roundBadge">1 / 15</span></div>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="btnStart">Démarrer</button>
+        <button id="btnReset">Réinitialiser</button>
+      </div>
+    </div>
+
+    <!-- ─── CLASSEMENT ─── -->
+    <div class="ranking-section">
+      <h2>Classement</h2>
+
+      <div class="add-player">
+        <input id="playerInput" type="text" placeholder="Nom du joueur…" maxlength="30"/>
+        <button class="btn-add" id="btnAdd">+</button>
+      </div>
+
+      <div class="active-players" id="activePlayers"></div>
+
+      <div class="leaderboard-title">Éliminés</div>
+      <div class="leaderboard" id="leaderboard">
+        <div class="empty-lb" id="emptyLb">Aucun joueur éliminé pour l'instant</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ─── CONSTANTES ───
+    const CIRCUMFERENCE = 2 * Math.PI * 120; // ~753.98
+
+    // ─── STATE ───
+    let currentMinutes = 15;
+    let secondsLeft    = 15 * 60;
+    let totalSeconds   = 15 * 60;
+    let intervalId     = null;
+    let running        = false;
+    let globalTour     = 1;   // tour absolu : 1→15 puis 16, 17, 18...
+    let loopCount      = 0;   // boucles à 1 min
+
+    let players  = [];  // { id, name, eliminated, tourStopped }
+    let nextId   = 1;
+
+    // ─── ÉLÉMENTS ───
+    const progressEl    = document.getElementById('progressCircle');
+    const timeTextEl    = document.getElementById('timeText');
+    const roundBadgeEl  = document.getElementById('roundBadge');
+    const btnStart      = document.getElementById('btnStart');
+    const btnReset      = document.getElementById('btnReset');
+    const playerInput   = document.getElementById('playerInput');
+    const btnAdd        = document.getElementById('btnAdd');
+    const activePlayersEl = document.getElementById('activePlayers');
+    const leaderboardEl   = document.getElementById('leaderboard');
+    const emptyLbEl       = document.getElementById('emptyLb');
+
+    progressEl.style.strokeDasharray = CIRCUMFERENCE;
+
+    // ─── UTILITAIRES ───
+    function formatTime(s) {
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    }
+
+    function updateProgress(seconds, total) {
+      const fraction = seconds / total;
+      progressEl.style.strokeDashoffset = CIRCUMFERENCE * (1 - fraction);
+      progressEl.classList.remove('warn', 'danger');
+      if (fraction <= 0.25)      progressEl.classList.add('danger');
+      else if (fraction <= 0.5)  progressEl.classList.add('warn');
+    }
+
+    function tourLabel(tour) {
+      if (tour <= 15) return `Tour ${tour} (${16 - tour} min)`;
+      const loop = tour - 15;
+      return `Tour ${tour} (boucle ${loop})`;
+    }
+
+    // ─── TIMER LOGIC ───
+    function tick() {
+      if (secondsLeft <= 0) {
+        nextRound();
+        return;
+      }
+      secondsLeft--;
+      timeTextEl.textContent = formatTime(secondsLeft);
+      updateProgress(secondsLeft, totalSeconds);
+    }
+
+    function nextRound() {
+      globalTour++;
+
+      if (currentMinutes > 1) {
+        currentMinutes--;
+      } else {
+        // boucle à 1 min
+        loopCount++;
+      }
+
+      secondsLeft  = currentMinutes * 60;
+      totalSeconds = secondsLeft;
+      updateRoundBadge();
+      updateProgress(secondsLeft, totalSeconds);
+      timeTextEl.textContent = formatTime(secondsLeft);
+      renderActivePlayers(); // met à jour l'état affiché
+    }
+
+    function updateRoundBadge() {
+      if (globalTour <= 15) {
+        roundBadgeEl.textContent = `${globalTour} / 15`;
+      } else {
+        roundBadgeEl.textContent = `∞ boucle ${loopCount}`;
+      }
+    }
+
+    // ─── CONTRÔLES ───
+    function start() {
+      if (running) return;
+      running = true;
+      btnStart.textContent = 'Pause';
+      intervalId = setInterval(tick, 1000);
+    }
+
+    function pause() {
+      running = false;
+      btnStart.textContent = 'Reprendre';
+      clearInterval(intervalId);
+    }
+
+    function reset() {
+      pause();
+      currentMinutes = 15;
+      secondsLeft    = 15 * 60;
+      totalSeconds   = 15 * 60;
+      globalTour     = 1;
+      loopCount      = 0;
+      btnStart.textContent = 'Démarrer';
+      timeTextEl.textContent = '15:00';
+      roundBadgeEl.textContent = '1 / 15';
+      updateProgress(secondsLeft, totalSeconds);
+      // Réinitialise les joueurs éliminés → tous actifs
+      players.forEach(p => { p.eliminated = false; p.tourStopped = null; });
+      renderActivePlayers();
+      renderLeaderboard();
+    }
+
+    btnStart.addEventListener('click', () => { running ? pause() : start(); });
+    btnReset.addEventListener('click', reset);
+
+    // ─── GESTION JOUEURS ───
+    function addPlayer(name) {
+      name = name.trim();
+      if (!name) return;
+      players.push({ id: nextId++, name, eliminated: false, tourStopped: null });
+      renderActivePlayers();
+    }
+
+    function eliminatePlayer(id) {
+      const p = players.find(x => x.id === id);
+      if (!p || p.eliminated) return;
+      p.eliminated  = true;
+      p.tourStopped = globalTour;
+      renderActivePlayers();
+      renderLeaderboard();
+    }
+
+    function removePlayer(id) {
+      players = players.filter(x => x.id !== id);
+      renderActivePlayers();
+      renderLeaderboard();
+    }
+
+    // ─── RENDU ───
+    function renderActivePlayers() {
+      activePlayersEl.innerHTML = '';
+      const active = players.filter(p => !p.eliminated);
+      const elim   = players.filter(p =>  p.eliminated);
+
+      if (active.length === 0 && elim.length === 0) return;
+
+      active.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'player-card';
+        card.innerHTML = `
+          <div>
+            <div class="player-name">${escHtml(p.name)}</div>
+            <div class="player-status">En course — ${tourLabel(globalTour)}</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn-stop" data-id="${p.id}">Arrêt</button>
+            <button class="btn-stop" style="background:#2a2a40;font-size:1rem;padding:6px 10px" data-remove="${p.id}" title="Supprimer">✕</button>
+          </div>`;
+        activePlayersEl.appendChild(card);
+      });
+
+      card_events();
+    }
+
+    function card_events() {
+      activePlayersEl.querySelectorAll('.btn-stop[data-id]').forEach(btn => {
+        btn.addEventListener('click', () => eliminatePlayer(+btn.dataset.id));
+      });
+      activePlayersEl.querySelectorAll('[data-remove]').forEach(btn => {
+        btn.addEventListener('click', () => removePlayer(+btn.dataset.remove));
+      });
+    }
+
+    function renderLeaderboard() {
+      leaderboardEl.innerHTML = '';
+      const elim = players
+        .filter(p => p.eliminated)
+        .sort((a, b) => b.tourStopped - a.tourStopped);
+
+      if (elim.length === 0) {
+        leaderboardEl.appendChild(emptyLbEl);
+        return;
+      }
+
+      const medals = ['🥇', '🥈', '🥉'];
+      elim.forEach((p, i) => {
+        const isLoop = p.tourStopped > 15;
+        const row = document.createElement('div');
+        row.className = 'lb-row';
+        row.innerHTML = `
+          <div class="lb-rank">${medals[i] ?? (i + 1)}</div>
+          <div class="lb-name">${escHtml(p.name)}</div>
+          <div class="lb-tour ${isLoop ? 'loop' : ''}">${tourLabel(p.tourStopped)}</div>
+          <button style="background:none;border:none;color:#333;cursor:pointer;font-size:0.9rem;padding:2px 4px" title="Retirer" data-remove-lb="${p.id}">✕</button>`;
+        leaderboardEl.appendChild(row);
+      });
+
+      leaderboardEl.querySelectorAll('[data-remove-lb]').forEach(btn => {
+        btn.addEventListener('click', () => removePlayer(+btn.dataset.removeLb));
+      });
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ─── AJOUT JOUEUR UI ───
+    btnAdd.addEventListener('click', () => {
+      addPlayer(playerInput.value);
+      playerInput.value = '';
+      playerInput.focus();
+    });
+
+    playerInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        addPlayer(playerInput.value);
+        playerInput.value = '';
+      }
+    });
+
+    // ─── INIT ───
+    updateProgress(secondsLeft, totalSeconds);
+  </script>
+</body>
+</html>
