@@ -118,7 +118,30 @@
 
     .member-info { display: flex; flex-direction: column; }
     .member-name { font-size: 0.95rem; font-weight: 600; }
-    .member-role { font-size: 0.75rem; color: #555; margin-top: 2px; }
+    .member-role {
+      font-size: 0.75rem;
+      color: #9d97ff;
+      margin-top: 2px;
+      background: #6c63ff22;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-block;
+    }
+    .member-role.empty { color: #444; background: none; }
+
+    .member-score { font-size: 0.7rem; color: #555; margin-top: 4px; }
+
+    .btn-edit-role {
+      background: #1a1a2e;
+      color: #888;
+      border: 1px solid #2a2a40;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: opacity 0.2s, border-color 0.2s;
+    }
+    .btn-edit-role:hover { border-color: #6c63ff; color: #fff; }
 
     .btn-remove {
       background: #2a2a40;
@@ -162,6 +185,7 @@
     <div class="section-title">Ajouter un membre</div>
     <div class="add-form">
       <input id="nameInput" type="text" placeholder="Nom du membre..." maxlength="30"/>
+      <input id="roleInput" type="text" placeholder="Poste..." maxlength="40"/>
       <button class="btn-add" id="btnAdd">+</button>
     </div>
 
@@ -188,6 +212,7 @@
     const membersRef = db.ref('comite/members');
 
     const nameInput    = document.getElementById('nameInput');
+    const roleInput    = document.getElementById('roleInput');
     const btnAdd       = document.getElementById('btnAdd');
     const memberList   = document.getElementById('memberList');
     const emptyMsg     = document.getElementById('emptyMsg');
@@ -200,13 +225,22 @@
     function addMember() {
       const name = nameInput.value.trim();
       if (!name) return;
-      membersRef.push({ name, score: 0, createdAt: Date.now() });
+      const role = roleInput.value.trim();
+      membersRef.push({ name, role: role || '', score: 0, createdAt: Date.now() });
       nameInput.value = '';
+      roleInput.value = '';
       nameInput.focus();
     }
 
+    function editRole(id, currentRole) {
+      const newRole = prompt('Nouveau poste :', currentRole || '');
+      if (newRole === null) return;
+      membersRef.child(id).update({ role: newRole.trim() });
+    }
+
     btnAdd.addEventListener('click', addMember);
-    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') addMember(); });
+    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { roleInput.focus(); } });
+    roleInput.addEventListener('keydown', e => { if (e.key === 'Enter') addMember(); });
 
     membersRef.on('value', snap => {
       const data = snap.val() || {};
@@ -221,19 +255,27 @@
       }
 
       entries.forEach(([id, m]) => {
+        const role = m.role || '';
         const card = document.createElement('div');
         card.className = 'member-card';
         card.innerHTML = `
           <div class="member-info">
             <div class="member-name">${escHtml(m.name)}</div>
-            <div class="member-role">Score cruche : ${m.score || 0}</div>
+            <div class="member-role ${role ? '' : 'empty'}">${role ? escHtml(role) : 'Aucun poste'}</div>
+            <div class="member-score">Score cruche : ${m.score || 0}</div>
           </div>
-          <button class="btn-remove" data-id="${id}">&#x2715;</button>`;
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn-edit-role" data-edit="${id}" data-role="${escHtml(role)}">Poste</button>
+            <button class="btn-remove" data-id="${id}">&#x2715;</button>
+          </div>`;
         memberList.appendChild(card);
       });
 
       memberList.querySelectorAll('.btn-remove').forEach(btn => {
         btn.addEventListener('click', () => membersRef.child(btn.dataset.id).remove());
+      });
+      memberList.querySelectorAll('.btn-edit-role').forEach(btn => {
+        btn.addEventListener('click', () => editRole(btn.dataset.edit, btn.dataset.role));
       });
 
       memberCount.textContent = `${entries.length} membre${entries.length > 1 ? 's' : ''}`;
