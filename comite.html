@@ -69,12 +69,14 @@
     /* ADD FORM */
     .add-form {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 24px;
     }
 
     .add-form input {
       flex: 1;
+      min-width: 120px;
       background: #1a1a2e;
       border: 1px solid #2a2a40;
       border-radius: 10px;
@@ -142,6 +144,34 @@
       transition: opacity 0.2s, border-color 0.2s;
     }
     .btn-edit-role:hover { border-color: #6c63ff; color: #fff; }
+
+    .role-edit-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      align-items: center;
+    }
+    .role-edit-input {
+      background: #12121f;
+      border: 1px solid #6c63ff;
+      border-radius: 8px;
+      padding: 5px 10px;
+      color: #fff;
+      font-size: 0.8rem;
+      outline: none;
+      width: 140px;
+    }
+    .btn-save-role {
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-save-role:hover { opacity: 0.85; }
 
     .btn-remove {
       background: #2a2a40;
@@ -232,10 +262,36 @@
       nameInput.focus();
     }
 
-    function editRole(id, currentRole) {
-      const newRole = prompt('Nouveau poste :', currentRole || '');
-      if (newRole === null) return;
-      membersRef.child(id).update({ role: newRole.trim() });
+    function toggleRoleEdit(id, currentRole) {
+      const existing = document.getElementById('role-edit-' + id);
+      if (existing) { existing.remove(); return; }
+
+      // Fermer les autres edits ouverts
+      document.querySelectorAll('.role-edit-row').forEach(el => el.remove());
+
+      const card = document.querySelector(`[data-card="${id}"]`);
+      if (!card) return;
+      const info = card.querySelector('.member-info');
+
+      const row = document.createElement('div');
+      row.className = 'role-edit-row';
+      row.id = 'role-edit-' + id;
+      row.innerHTML = `
+        <input class="role-edit-input" type="text" value="${escHtml(currentRole)}" placeholder="Poste..." maxlength="40"/>
+        <button class="btn-save-role">OK</button>`;
+      info.appendChild(row);
+
+      const input = row.querySelector('input');
+      const btnSave = row.querySelector('.btn-save-role');
+      input.focus();
+
+      function save() {
+        membersRef.child(id).update({ role: input.value.trim() });
+        row.remove();
+      }
+
+      btnSave.addEventListener('click', save);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
     }
 
     btnAdd.addEventListener('click', addMember);
@@ -258,6 +314,7 @@
         const role = m.role || '';
         const card = document.createElement('div');
         card.className = 'member-card';
+        card.setAttribute('data-card', id);
         card.innerHTML = `
           <div class="member-info">
             <div class="member-name">${escHtml(m.name)}</div>
@@ -275,7 +332,7 @@
         btn.addEventListener('click', () => membersRef.child(btn.dataset.id).remove());
       });
       memberList.querySelectorAll('.btn-edit-role').forEach(btn => {
-        btn.addEventListener('click', () => editRole(btn.dataset.edit, btn.dataset.role));
+        btn.addEventListener('click', () => toggleRoleEdit(btn.dataset.edit, btn.dataset.role));
       });
 
       memberCount.textContent = `${entries.length} membre${entries.length > 1 ? 's' : ''}`;
