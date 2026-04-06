@@ -35,9 +35,31 @@
       font-size: 0.75rem;
       letter-spacing: 0.1em;
       color: #444;
-      margin-top: -30px;
+      margin-top: -20px;
       transition: color 0.3s;
     }
+
+    /* NAV */
+    nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    nav a {
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: opacity 0.2s;
+      border: 1px solid #2a2a40;
+      color: #888;
+      background: #1a1a2e;
+    }
+    nav a:hover { opacity: 0.75; }
+    nav a.active { background: #6c63ff; color: #fff; border-color: #6c63ff; }
 
     /* ─── LAYOUT ─── */
     .layout {
@@ -243,6 +265,13 @@
 <body>
 
   <h1>Empereur ODGG</h1>
+
+  <nav>
+    <a href="index.html" class="active">Empereur</a>
+    <a href="comite.html">Comit&eacute;</a>
+    <a href="cruche.html">Cruche</a>
+  </nav>
+
   <div id="fbStatus">● connexion…</div>
 
   <div class="layout">

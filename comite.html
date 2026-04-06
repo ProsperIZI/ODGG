@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comit&eacute; ODGG</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f0f1a;
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      gap: 32px;
+    }
+
+    h1 {
+      font-size: 1rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #666;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    nav a {
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: opacity 0.2s;
+      border: 1px solid #2a2a40;
+      color: #888;
+      background: #1a1a2e;
+    }
+    nav a:hover { opacity: 0.75; }
+    nav a.active { background: #6c63ff; color: #fff; border-color: #6c63ff; }
+
+    /* CONTENT */
+    .container {
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 16px;
+    }
+
+    /* ADD FORM */
+    .add-form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .add-form input {
+      flex: 1;
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .add-form input:focus { border-color: #6c63ff; }
+    .add-form input::placeholder { color: #444; }
+
+    .btn-add {
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-add:hover { opacity: 0.85; }
+
+    /* MEMBER LIST */
+    .member-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .member-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 12px;
+      padding: 12px 16px;
+    }
+
+    .member-info { display: flex; flex-direction: column; }
+    .member-name { font-size: 0.95rem; font-weight: 600; }
+    .member-role { font-size: 0.75rem; color: #555; margin-top: 2px; }
+
+    .btn-remove {
+      background: #2a2a40;
+      color: #888;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: opacity 0.2s, background 0.2s;
+    }
+    .btn-remove:hover { background: #ff6584; color: #fff; }
+
+    .empty-msg {
+      color: #333;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 32px 0;
+      font-style: italic;
+    }
+
+    .member-count {
+      font-size: 0.75rem;
+      color: #444;
+      text-align: center;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Comit&eacute; ODGG</h1>
+
+  <nav>
+    <a href="index.html">Empereur</a>
+    <a href="comite.html" class="active">Comit&eacute;</a>
+    <a href="cruche.html">Cruche</a>
+  </nav>
+
+  <div class="container">
+    <div class="section-title">Ajouter un membre</div>
+    <div class="add-form">
+      <input id="nameInput" type="text" placeholder="Nom du membre..." maxlength="30"/>
+      <button class="btn-add" id="btnAdd">+</button>
+    </div>
+
+    <div class="section-title">Membres</div>
+    <div class="member-list" id="memberList">
+      <div class="empty-msg" id="emptyMsg">Aucun membre pour l'instant</div>
+    </div>
+    <div class="member-count" id="memberCount"></div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey:            "AIzaSyBECOMyRRCKaAOThoUAS4STiFFPNhlbpvs",
+      authDomain:        "odgg-80281.firebaseapp.com",
+      databaseURL:       "https://odgg-80281-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId:         "odgg-80281",
+      storageBucket:     "odgg-80281.firebasestorage.app",
+      messagingSenderId: "542453001838",
+      appId:             "1:542453001838:web:77ae05671f3d2a299b407f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const membersRef = db.ref('comite/members');
+
+    const nameInput    = document.getElementById('nameInput');
+    const btnAdd       = document.getElementById('btnAdd');
+    const memberList   = document.getElementById('memberList');
+    const emptyMsg     = document.getElementById('emptyMsg');
+    const memberCount  = document.getElementById('memberCount');
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function addMember() {
+      const name = nameInput.value.trim();
+      if (!name) return;
+      membersRef.push({ name, score: 0, createdAt: Date.now() });
+      nameInput.value = '';
+      nameInput.focus();
+    }
+
+    btnAdd.addEventListener('click', addMember);
+    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') addMember(); });
+
+    membersRef.on('value', snap => {
+      const data = snap.val() || {};
+      const entries = Object.entries(data).sort(([,a],[,b]) => a.createdAt - b.createdAt);
+
+      memberList.innerHTML = '';
+
+      if (entries.length === 0) {
+        memberList.appendChild(emptyMsg);
+        memberCount.textContent = '';
+        return;
+      }
+
+      entries.forEach(([id, m]) => {
+        const card = document.createElement('div');
+        card.className = 'member-card';
+        card.innerHTML = `
+          <div class="member-info">
+            <div class="member-name">${escHtml(m.name)}</div>
+            <div class="member-role">Score cruche : ${m.score || 0}</div>
+          </div>
+          <button class="btn-remove" data-id="${id}">&#x2715;</button>`;
+        memberList.appendChild(card);
+      });
+
+      memberList.querySelectorAll('.btn-remove').forEach(btn => {
+        btn.addEventListener('click', () => membersRef.child(btn.dataset.id).remove());
+      });
+
+      memberCount.textContent = `${entries.length} membre${entries.length > 1 ? 's' : ''}`;
+    });
+  </script>
+</body>
+</html>

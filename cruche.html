@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cruche ODGG</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f0f1a;
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      gap: 32px;
+    }
+
+    h1 {
+      font-size: 1rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #666;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    nav a {
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: opacity 0.2s;
+      border: 1px solid #2a2a40;
+      color: #888;
+      background: #1a1a2e;
+    }
+    nav a:hover { opacity: 0.75; }
+    nav a.active { background: #6c63ff; color: #fff; border-color: #6c63ff; }
+
+    /* TABLE */
+    .container {
+      width: 100%;
+      max-width: 550px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 6px;
+    }
+
+    thead th {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #555;
+      padding: 8px 14px;
+      text-align: left;
+      font-weight: 600;
+    }
+    thead th:last-child { text-align: center; }
+    thead th.col-score { text-align: center; }
+
+    tbody tr {
+      background: #1a1a2e;
+    }
+
+    tbody td {
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      border-top: 1px solid #2a2a40;
+      border-bottom: 1px solid #2a2a40;
+    }
+
+    tbody td:first-child {
+      border-left: 1px solid #2a2a40;
+      border-radius: 10px 0 0 10px;
+    }
+    tbody td:last-child {
+      border-right: 1px solid #2a2a40;
+      border-radius: 0 10px 10px 0;
+    }
+
+    .col-rank {
+      width: 40px;
+      text-align: center;
+      font-weight: 700;
+      color: #444;
+    }
+    tbody tr:nth-child(1) .col-rank { color: #ffd700; font-size: 1.1rem; }
+    tbody tr:nth-child(2) .col-rank { color: #c0c0c0; font-size: 1.05rem; }
+    tbody tr:nth-child(3) .col-rank { color: #cd7f32; font-size: 1rem; }
+
+    .col-name { font-weight: 600; }
+
+    .col-score {
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      min-width: 50px;
+    }
+    .score-positive { color: #ff6584; }
+    .score-zero { color: #555; }
+
+    .col-actions {
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .btn-score {
+      width: 34px;
+      height: 34px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      margin: 0 3px;
+    }
+    .btn-score:active { transform: scale(0.9); }
+
+    .btn-plus {
+      background: #ff6584;
+      color: #fff;
+    }
+    .btn-plus:hover { opacity: 0.85; }
+
+    .btn-minus {
+      background: #1a1a2e;
+      color: #888;
+      border: 1px solid #2a2a40;
+    }
+    .btn-minus:hover { opacity: 0.75; }
+
+    .empty-msg {
+      color: #333;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 32px 0;
+      font-style: italic;
+    }
+
+    .hint {
+      font-size: 0.75rem;
+      color: #444;
+      text-align: center;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Cruche ODGG</h1>
+
+  <nav>
+    <a href="index.html">Empereur</a>
+    <a href="comite.html">Comit&eacute;</a>
+    <a href="cruche.html" class="active">Cruche</a>
+  </nav>
+
+  <div class="container">
+    <div class="section-title">Tableau des cruches</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Membre</th>
+          <th class="col-score">Score</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+      </tbody>
+    </table>
+
+    <div class="empty-msg" id="emptyMsg">Aucun membre — ajoute des membres dans le Comit&eacute;</div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey:            "AIzaSyBECOMyRRCKaAOThoUAS4STiFFPNhlbpvs",
+      authDomain:        "odgg-80281.firebaseapp.com",
+      databaseURL:       "https://odgg-80281-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId:         "odgg-80281",
+      storageBucket:     "odgg-80281.firebasestorage.app",
+      messagingSenderId: "542453001838",
+      appId:             "1:542453001838:web:77ae05671f3d2a299b407f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const membersRef = db.ref('comite/members');
+
+    const tableBody = document.getElementById('tableBody');
+    const emptyMsg  = document.getElementById('emptyMsg');
+    const hint      = document.getElementById('hint');
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function changeScore(id, delta) {
+      membersRef.child(id).child('score').transaction(current => {
+        const val = (current || 0) + delta;
+        return val < 0 ? 0 : val;
+      });
+    }
+
+    membersRef.on('value', snap => {
+      const data = snap.val() || {};
+      const entries = Object.entries(data).sort(([,a],[,b]) => (b.score || 0) - (a.score || 0));
+
+      tableBody.innerHTML = '';
+
+      if (entries.length === 0) {
+        emptyMsg.style.display = 'block';
+        hint.textContent = '';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+      const medals = ['&#129351;','&#129352;','&#129353;'];
+
+      entries.forEach(([id, m], i) => {
+        const score = m.score || 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="col-rank">${medals[i] ?? (i + 1)}</td>
+          <td class="col-name">${escHtml(m.name)}</td>
+          <td class="col-score ${score > 0 ? 'score-positive' : 'score-zero'}">${score}</td>
+          <td class="col-actions">
+            <button class="btn-score btn-minus" data-id="${id}" data-delta="-1">&minus;</button>
+            <button class="btn-score btn-plus"  data-id="${id}" data-delta="1">+</button>
+          </td>`;
+        tableBody.appendChild(tr);
+      });
+
+      tableBody.querySelectorAll('.btn-score').forEach(btn => {
+        btn.addEventListener('click', () => {
+          changeScore(btn.dataset.id, parseInt(btn.dataset.delta));
+        });
+      });
+
+      hint.textContent = `${entries.length} membre${entries.length > 1 ? 's' : ''} — tri\u00E9 par score`;
+    });
+  </script>
+</body>
+</html>
