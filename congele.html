@@ -175,23 +175,71 @@
       padding: 12px 16px;
     }
 
+    .word-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+
     .word-text {
       font-size: 0.95rem;
       font-weight: 600;
       word-break: break-word;
     }
 
+    .word-score {
+      font-size: 1.1rem;
+      font-weight: 700;
+      min-width: 30px;
+      text-align: center;
+    }
+    .score-positive { color: #ff6584; }
+    .score-zero { color: #555; }
+
+    .word-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+
+    .btn-score {
+      width: 34px;
+      height: 34px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    .btn-score:active { transform: scale(0.9); }
+
+    .btn-plus {
+      background: #ff6584;
+      color: #fff;
+    }
+    .btn-plus:hover { opacity: 0.85; }
+
+    .btn-minus {
+      background: #1a1a2e;
+      color: #888;
+      border: 1px solid #2a2a40;
+    }
+    .btn-minus:hover { opacity: 0.75; }
+
     .btn-remove {
       background: #2a2a40;
       color: #888;
       border: none;
       border-radius: 8px;
-      padding: 6px 12px;
+      padding: 6px 10px;
       font-size: 0.9rem;
       cursor: pointer;
       transition: opacity 0.2s, background 0.2s;
-      flex-shrink: 0;
-      margin-left: 12px;
     }
     .btn-remove:hover { background: #ff6584; color: #fff; }
 
@@ -235,15 +283,15 @@
   </div>
 
   <div class="container">
-    <div class="section-title" id="addTitle" style="display:none">Ajouter un mot</div>
+    <div class="section-title" id="addTitle" style="display:none">Ajouter un aliment</div>
     <div class="add-form" id="addForm" style="display:none">
-      <input id="wordInput" type="text" placeholder="Nouveau mot..." maxlength="60"/>
+      <input id="wordInput" type="text" placeholder="Nouvel aliment..." maxlength="60"/>
       <button class="btn-add" id="btnAdd">+</button>
     </div>
 
-    <div class="section-title">Mots</div>
+    <div class="section-title">Aliments</div>
     <div class="word-list" id="wordList">
-      <div class="empty-msg" id="emptyMsg">Aucun mot pour l'instant</div>
+      <div class="empty-msg" id="emptyMsg">Aucun aliment pour l'instant</div>
     </div>
     <div class="word-count" id="wordCount"></div>
   </div>
@@ -344,9 +392,16 @@
     function addWord() {
       const text = wordInput.value.trim();
       if (!text) return;
-      wordsRef.push({ text: text, createdAt: Date.now() });
+      wordsRef.push({ text: text, score: 0, createdAt: Date.now() });
       wordInput.value = '';
       wordInput.focus();
+    }
+
+    function changeScore(id, delta) {
+      wordsRef.child(id).child('score').transaction(current => {
+        const val = (current || 0) + delta;
+        return val < 0 ? 0 : val;
+      });
     }
 
     btnAdd.addEventListener('click', addWord);
@@ -354,7 +409,7 @@
 
     // ── RENDER ──
     function render() {
-      const entries = Object.entries(wordsData).sort((a, b) => a[1].createdAt - b[1].createdAt);
+      const entries = Object.entries(wordsData).sort(([,a],[,b]) => (b.score || 0) - (a.score || 0));
       wordList.innerHTML = '';
 
       if (entries.length === 0) {
@@ -364,26 +419,38 @@
       }
 
       entries.forEach(([id, w]) => {
+        const score = w.score || 0;
         const card = document.createElement('div');
         card.className = 'word-card';
 
-        const removeBtn = isAdmin
-          ? '<button class="btn-remove" data-id="' + id + '">&#x2715;</button>'
+        const adminBtns = isAdmin
+          ? '<div class="word-actions">' +
+              '<button class="btn-score btn-minus" data-id="' + id + '" data-delta="-1">&minus;</button>' +
+              '<button class="btn-score btn-plus" data-id="' + id + '" data-delta="1">+</button>' +
+              '<button class="btn-remove" data-id="' + id + '">&#x2715;</button>' +
+            '</div>'
           : '';
 
         card.innerHTML =
-          '<span class="word-text">' + escHtml(w.text) + '</span>' + removeBtn;
+          '<div class="word-info">' +
+            '<span class="word-text">' + escHtml(w.text) + '</span>' +
+          '</div>' +
+          '<span class="word-score ' + (score > 0 ? 'score-positive' : 'score-zero') + '">' + score + '</span>' +
+          adminBtns;
 
         wordList.appendChild(card);
       });
 
       if (isAdmin) {
+        wordList.querySelectorAll('.btn-score').forEach(btn => {
+          btn.addEventListener('click', () => changeScore(btn.dataset.id, parseInt(btn.dataset.delta)));
+        });
         wordList.querySelectorAll('.btn-remove').forEach(btn => {
           btn.addEventListener('click', () => wordsRef.child(btn.dataset.id).remove());
         });
       }
 
-      wordCount.textContent = entries.length + ' mot' + (entries.length > 1 ? 's' : '');
+      wordCount.textContent = entries.length + ' aliment' + (entries.length > 1 ? 's' : '') + ' \u2014 tri\u00e9 par score';
     }
 
     wordsRef.on('value', snap => {

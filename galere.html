@@ -279,7 +279,7 @@
   </div>
 
   <div class="container">
-    <div class="section-title">Anecdotes</div>
+    <div class="section-title">Galères</div>
     <div id="memberList">
       <div class="empty-msg" id="emptyMsg">Aucun membre dans le comité</div>
     </div>
@@ -417,12 +417,12 @@
               '</div>';
           }).join('') + '</div>';
         } else {
-          anecdotesHtml = '<div class="no-anecdotes">Aucune anecdote</div>';
+          anecdotesHtml = '<div class="no-anecdotes">Aucune galère</div>';
         }
 
         const addHtml = isAdmin
           ? '<div class="add-anecdote">' +
-              '<input id="anecdote-input-' + id + '" type="text" placeholder="Ajouter une anecdote..." maxlength="200"/>' +
+              '<input id="anecdote-input-' + id + '" type="text" placeholder="Ajouter une galère..." maxlength="200"/>' +
               '<button class="btn-add-anecdote" data-member="' + id + '">+</button>' +
             '</div>'
           : '';
