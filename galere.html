@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cruche ODGG</title>
+  <title>Galère ODGG</title>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
@@ -55,10 +55,6 @@
     nav a.active { background: #6c63ff; color: #fff; border-color: #6c63ff; }
     nav .btn-login { border-color: #ffbe76; color: #ffbe76; }
     nav .btn-logout { border-color: #6c63ff; color: #6c63ff; }
-
-    /* ADMIN */
-    .admin-only { display: none !important; }
-    body.is-admin .admin-only { display: flex !important; }
 
     /* MODAL */
     .modal-overlay {
@@ -117,10 +113,10 @@
       min-height: 1.2em;
     }
 
-    /* TABLE */
+    /* CONTENT */
     .container {
       width: 100%;
-      max-width: 550px;
+      max-width: 600px;
     }
 
     .section-title {
@@ -132,95 +128,116 @@
       text-align: center;
     }
 
-    table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0 6px;
-    }
-
-    thead th {
-      font-size: 0.75rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: #555;
-      padding: 8px 14px;
-      text-align: left;
-      font-weight: 600;
-    }
-    thead th:last-child { text-align: center; }
-    thead th.col-score { text-align: center; }
-
-    tbody tr {
+    .member-block {
       background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
     }
 
-    tbody td {
-      padding: 10px 14px;
-      font-size: 0.95rem;
-      border-top: 1px solid #2a2a40;
-      border-bottom: 1px solid #2a2a40;
+    .member-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
     }
 
-    tbody td:first-child {
-      border-left: 1px solid #2a2a40;
-      border-radius: 10px 0 0 10px;
-    }
-    tbody td:last-child {
-      border-right: 1px solid #2a2a40;
-      border-radius: 0 10px 10px 0;
-    }
-
-    .col-rank {
-      width: 40px;
-      text-align: center;
+    .member-name {
+      font-size: 1rem;
       font-weight: 700;
-      color: #444;
     }
-    tbody tr:nth-child(1) .col-rank { color: #ffd700; font-size: 1.1rem; }
-    tbody tr:nth-child(2) .col-rank { color: #c0c0c0; font-size: 1.05rem; }
-    tbody tr:nth-child(3) .col-rank { color: #cd7f32; font-size: 1rem; }
 
-    .col-name { font-weight: 600; }
+    .member-role {
+      font-size: 0.7rem;
+      color: #9d97ff;
+      background: #6c63ff22;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
 
-    .col-score {
-      text-align: center;
+    .anecdotes {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .anecdote {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #12121f;
+      border: 1px solid #2a2a40;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      color: #ccc;
+      line-height: 1.4;
+    }
+
+    .anecdote-bullet {
+      color: #6c63ff;
       font-weight: 700;
-      font-size: 1.1rem;
-      min-width: 50px;
-    }
-    .score-positive { color: #ff6584; }
-    .score-zero { color: #555; }
-
-    .col-actions {
-      text-align: center;
-      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 1px;
     }
 
-    .btn-score {
-      width: 34px;
-      height: 34px;
+    .anecdote-text {
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .btn-remove-anecdote {
+      background: none;
       border: none;
-      border-radius: 8px;
-      font-size: 1.1rem;
+      color: #333;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 0 4px;
+      flex-shrink: 0;
+      transition: color 0.2s;
+    }
+    .btn-remove-anecdote:hover { color: #ff6584; }
+
+    .no-anecdotes {
+      font-size: 0.8rem;
+      color: #333;
+      font-style: italic;
+      padding: 4px 0;
+    }
+
+    .add-anecdote {
+      display: flex;
+      gap: 8px;
+    }
+
+    .add-anecdote input {
+      flex: 1;
+      background: #12121f;
+      border: 1px solid #2a2a40;
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .add-anecdote input:focus { border-color: #6c63ff; }
+    .add-anecdote input::placeholder { color: #444; }
+
+    .btn-add-anecdote {
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 0.95rem;
       font-weight: 700;
       cursor: pointer;
-      transition: transform 0.1s, opacity 0.2s;
-      margin: 0 3px;
+      transition: opacity 0.2s;
     }
-    .btn-score:active { transform: scale(0.9); }
-
-    .btn-plus {
-      background: #ff6584;
-      color: #fff;
-    }
-    .btn-plus:hover { opacity: 0.85; }
-
-    .btn-minus {
-      background: #1a1a2e;
-      color: #888;
-      border: 1px solid #2a2a40;
-    }
-    .btn-minus:hover { opacity: 0.75; }
+    .btn-add-anecdote:hover { opacity: 0.85; }
 
     .empty-msg {
       color: #333;
@@ -230,7 +247,7 @@
       font-style: italic;
     }
 
-    .hint {
+    .member-count {
       font-size: 0.75rem;
       color: #444;
       text-align: center;
@@ -240,13 +257,13 @@
 </head>
 <body>
 
-  <h1>Cruche ODGG</h1>
+  <h1>Galère ODGG</h1>
 
   <nav>
     <a href="empereur.html">Empereur</a>
-    <a href="index.html">Comit&eacute;</a>
-    <a href="cruche.html" class="active">Cruche</a>
-    <a href="galere.html">Galère</a>
+    <a href="index.html">Comité</a>
+    <a href="cruche.html">Cruche</a>
+    <a href="galere.html" class="active">Galère</a>
     <a href="congele.html">Congèle</a>
     <button class="btn-login" id="btnLogin">Admin</button>
   </nav>
@@ -262,23 +279,11 @@
   </div>
 
   <div class="container">
-    <div class="section-title">Tableau des cruches</div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Membre</th>
-          <th class="col-score">Score</th>
-          <th id="thActions"></th>
-        </tr>
-      </thead>
-      <tbody id="tableBody">
-      </tbody>
-    </table>
-
-    <div class="empty-msg" id="emptyMsg">Aucun membre &mdash; ajoute des membres dans le Comit&eacute;</div>
-    <div class="hint" id="hint"></div>
+    <div class="section-title">Anecdotes</div>
+    <div id="memberList">
+      <div class="empty-msg" id="emptyMsg">Aucun membre dans le comité</div>
+    </div>
+    <div class="member-count" id="memberCount"></div>
   </div>
 
   <script>
@@ -295,6 +300,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const membersRef = db.ref('comite/members');
+    const anecdotesRef = db.ref('galere/anecdotes');
 
     // ── ADMIN AUTH ──
     let isAdmin = false;
@@ -317,7 +323,7 @@
         btnLogin.className = 'btn-login';
         localStorage.removeItem('odgg_admin');
       }
-      renderTable();
+      render();
     }
 
     btnLogin.addEventListener('click', () => {
@@ -355,65 +361,115 @@
       db.ref('config/adminPass').once('value', () => setAdmin(true));
     }
 
-    // ── TABLE ──
-    const tableBody = document.getElementById('tableBody');
-    const emptyMsg  = document.getElementById('emptyMsg');
-    const hint      = document.getElementById('hint');
+    // ── DATA ──
+    const memberListEl = document.getElementById('memberList');
+    const emptyMsg     = document.getElementById('emptyMsg');
+    const memberCount  = document.getElementById('memberCount');
 
     let membersData = {};
+    let anecdotesData = {};
 
     function escHtml(s) {
       return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    function changeScore(id, delta) {
-      membersRef.child(id).child('score').transaction(current => {
-        const val = (current || 0) + delta;
-        return val < 0 ? 0 : val;
-      });
+    function addAnecdote(memberId) {
+      const input = document.getElementById('anecdote-input-' + memberId);
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) return;
+      anecdotesRef.child(memberId).push({ text: text, createdAt: Date.now() });
+      input.value = '';
+      input.focus();
     }
 
-    function renderTable() {
-      const entries = Object.entries(membersData).sort(([,a],[,b]) => (b.score || 0) - (a.score || 0));
-      tableBody.innerHTML = '';
+    function removeAnecdote(memberId, anecdoteId) {
+      anecdotesRef.child(memberId).child(anecdoteId).remove();
+    }
+
+    function render() {
+      const entries = Object.entries(membersData).sort((a, b) => a[1].createdAt - b[1].createdAt);
+      memberListEl.innerHTML = '';
 
       if (entries.length === 0) {
-        emptyMsg.style.display = 'block';
-        hint.textContent = '';
+        memberListEl.appendChild(emptyMsg);
+        memberCount.textContent = '';
         return;
       }
 
-      emptyMsg.style.display = 'none';
-      const medals = ['&#129351;','&#129352;','&#129353;'];
+      entries.forEach(([id, m]) => {
+        const memberAnecdotes = anecdotesData[id] || {};
+        const anecdoteEntries = Object.entries(memberAnecdotes).sort((a, b) => a[1].createdAt - b[1].createdAt);
 
-      entries.forEach(([id, m], i) => {
-        const score = m.score || 0;
-        const tr = document.createElement('tr');
-        const actionsTd = isAdmin
-          ? `<td class="col-actions">
-               <button class="btn-score btn-minus" data-id="${id}" data-delta="-1">&minus;</button>
-               <button class="btn-score btn-plus"  data-id="${id}" data-delta="1">+</button>
-             </td>`
+        const block = document.createElement('div');
+        block.className = 'member-block';
+
+        let anecdotesHtml = '';
+        if (anecdoteEntries.length > 0) {
+          anecdotesHtml = '<div class="anecdotes">' + anecdoteEntries.map(([aId, a]) => {
+            const removeBtn = isAdmin
+              ? '<button class="btn-remove-anecdote" data-member="' + id + '" data-anecdote="' + aId + '">&times;</button>'
+              : '';
+            return '<div class="anecdote">' +
+              '<span class="anecdote-bullet">&rsaquo;</span>' +
+              '<span class="anecdote-text">' + escHtml(a.text) + '</span>' +
+              removeBtn +
+              '</div>';
+          }).join('') + '</div>';
+        } else {
+          anecdotesHtml = '<div class="no-anecdotes">Aucune anecdote</div>';
+        }
+
+        const addHtml = isAdmin
+          ? '<div class="add-anecdote">' +
+              '<input id="anecdote-input-' + id + '" type="text" placeholder="Ajouter une anecdote..." maxlength="200"/>' +
+              '<button class="btn-add-anecdote" data-member="' + id + '">+</button>' +
+            '</div>'
           : '';
-        tr.innerHTML = `
-          <td class="col-rank">${medals[i] ?? (i + 1)}</td>
-          <td class="col-name">${escHtml(m.name)}</td>
-          <td class="col-score ${score > 0 ? 'score-positive' : 'score-zero'}">${score}</td>${actionsTd}`;
-        tableBody.appendChild(tr);
+
+        const roleHtml = m.role
+          ? '<span class="member-role">' + escHtml(m.role) + '</span>'
+          : '';
+
+        block.innerHTML =
+          '<div class="member-header">' +
+            '<span class="member-name">' + escHtml(m.name) + '</span>' +
+            roleHtml +
+          '</div>' +
+          anecdotesHtml +
+          addHtml;
+
+        memberListEl.appendChild(block);
       });
 
+      // Event listeners
       if (isAdmin) {
-        tableBody.querySelectorAll('.btn-score').forEach(btn => {
-          btn.addEventListener('click', () => changeScore(btn.dataset.id, parseInt(btn.dataset.delta)));
+        memberListEl.querySelectorAll('.btn-add-anecdote').forEach(btn => {
+          const memberId = btn.dataset.member;
+          btn.addEventListener('click', () => addAnecdote(memberId));
+        });
+
+        memberListEl.querySelectorAll('.add-anecdote input').forEach(input => {
+          const memberId = input.id.replace('anecdote-input-', '');
+          input.addEventListener('keydown', e => { if (e.key === 'Enter') addAnecdote(memberId); });
+        });
+
+        memberListEl.querySelectorAll('.btn-remove-anecdote').forEach(btn => {
+          btn.addEventListener('click', () => removeAnecdote(btn.dataset.member, btn.dataset.anecdote));
         });
       }
 
-      hint.textContent = `${entries.length} membre${entries.length > 1 ? 's' : ''} \u2014 tri\u00E9 par score`;
+      memberCount.textContent = entries.length + ' membre' + (entries.length > 1 ? 's' : '');
     }
 
     membersRef.on('value', snap => {
       membersData = snap.val() || {};
-      renderTable();
+      render();
+    });
+
+    anecdotesRef.on('value', snap => {
+      anecdotesData = snap.val() || {};
+      render();
     });
   </script>
 </body>
