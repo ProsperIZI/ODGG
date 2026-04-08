@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dettes ODGG</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f0f1a;
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      gap: 32px;
+    }
+
+    h1 {
+      font-size: 1rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #666;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+    nav a, nav button {
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: opacity 0.2s;
+      border: 1px solid #2a2a40;
+      color: #888;
+      background: #1a1a2e;
+      cursor: pointer;
+    }
+    nav a:hover, nav button:hover { opacity: 0.75; }
+    nav a.active { background: #6c63ff; color: #fff; border-color: #6c63ff; }
+    nav .btn-login { border-color: #ffbe76; color: #ffbe76; }
+    nav .btn-logout { border-color: #6c63ff; color: #6c63ff; }
+
+    /* ADMIN */
+    .admin-only { display: none !important; }
+    body.is-admin .admin-only { display: flex !important; }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 16px;
+      padding: 32px;
+      width: 320px;
+      text-align: center;
+    }
+    .modal h3 {
+      font-size: 0.9rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 20px;
+    }
+    .modal input {
+      width: 100%;
+      background: #12121f;
+      border: 1px solid #2a2a40;
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .modal input:focus { border-color: #6c63ff; }
+    .modal .btn-confirm {
+      width: 100%;
+      padding: 12px;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .modal .btn-confirm:hover { opacity: 0.85; }
+    .modal .modal-error {
+      color: #ff6584;
+      font-size: 0.8rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+
+    /* CONTENT */
+    .container {
+      width: 100%;
+      max-width: 550px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    /* ADD FORM */
+    .add-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .add-form label {
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #555;
+    }
+    .add-form select, .add-form input[type="number"] {
+      width: 100%;
+      background: #12121f;
+      border: 1px solid #2a2a40;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .add-form select:focus, .add-form input[type="number"]:focus { border-color: #6c63ff; }
+    .add-form select option { background: #12121f; color: #fff; }
+
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-row .arrow {
+      color: #6c63ff;
+      font-size: 1.2rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .form-row > div { flex: 1; }
+
+    .btn-add-debt {
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-top: 4px;
+    }
+    .btn-add-debt:hover { opacity: 0.85; }
+
+    /* DEBT LIST */
+    .debt-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .debt-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .debt-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .debt-names {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .debt-names .from { color: #ff6584; }
+    .debt-names .arrow { color: #555; margin: 0 6px; }
+    .debt-names .to { color: #6c63ff; }
+    .debt-amount {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #ffbe76;
+    }
+    .debt-date {
+      font-size: 0.7rem;
+      color: #444;
+    }
+
+    .btn-remove {
+      background: #2a2a40;
+      color: #888;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: opacity 0.2s, background 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-remove:hover { background: #ff6584; color: #fff; }
+
+    .empty-msg {
+      color: #333;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 32px 0;
+      font-style: italic;
+    }
+
+    .hint {
+      font-size: 0.75rem;
+      color: #444;
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    /* SUMMARY */
+    .summary {
+      margin-top: 32px;
+    }
+    .summary-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1a1a2e;
+      border: 1px solid #2a2a40;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 6px;
+    }
+    .summary-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .summary-amounts {
+      display: flex;
+      gap: 12px;
+      font-size: 0.8rem;
+    }
+    .summary-owes { color: #ff6584; }
+    .summary-owed { color: #6c63ff; }
+    .summary-net { font-weight: 700; }
+    .summary-net.positive { color: #6c63ff; }
+    .summary-net.negative { color: #ff6584; }
+    .summary-net.zero { color: #555; }
+  </style>
+</head>
+<body>
+
+  <h1>Dettes ODGG</h1>
+
+  <nav>
+    <a href="empereur.html">Empereur</a>
+    <a href="index.html">Comit&eacute;</a>
+    <a href="cruche.html">Cruche</a>
+    <a href="galere.html">Galère</a>
+    <a href="congele.html">Congèle</a>
+    <a href="dette.html" class="active">Dettes</a>
+    <button class="btn-login" id="btnLogin">Admin</button>
+  </nav>
+
+  <!-- MODAL LOGIN -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3>Connexion Admin</h3>
+      <input type="password" id="passInput" placeholder="Mot de passe..." autocomplete="off"/>
+      <button class="btn-confirm" id="btnPassOk">Se connecter</button>
+      <div class="modal-error" id="modalError"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- ADD DEBT FORM (admin only) -->
+    <div class="add-form admin-only" id="addForm">
+      <div class="form-row">
+        <div>
+          <label>Débiteur</label>
+          <select id="selectFrom"><option value="">-- Membre --</option></select>
+        </div>
+        <span class="arrow">→</span>
+        <div>
+          <label>Créancier</label>
+          <select id="selectTo"><option value="">-- Membre --</option></select>
+        </div>
+      </div>
+      <label>Montant (€)</label>
+      <input type="number" id="amountInput" placeholder="0.00" min="0.01" step="0.01"/>
+      <button class="btn-add-debt" id="btnAddDebt">Ajouter la dette</button>
+    </div>
+
+    <div class="section-title">Liste des dettes</div>
+    <div class="debt-list" id="debtList">
+      <div class="empty-msg" id="emptyMsg">Aucune dette enregistrée</div>
+    </div>
+    <div class="hint" id="hint"></div>
+
+    <!-- SUMMARY PER MEMBER -->
+    <div class="summary" id="summarySection" style="display:none">
+      <div class="section-title">Résumé par membre</div>
+      <div id="summaryList"></div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey:            "AIzaSyBECOMyRRCKaAOThoUAS4STiFFPNhlbpvs",
+      authDomain:        "odgg-80281.firebaseapp.com",
+      databaseURL:       "https://odgg-80281-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId:         "odgg-80281",
+      storageBucket:     "odgg-80281.firebasestorage.app",
+      messagingSenderId: "542453001838",
+      appId:             "1:542453001838:web:77ae05671f3d2a299b407f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const membersRef = db.ref('comite/members');
+    const dettesRef = db.ref('dettes');
+
+    // ── ADMIN AUTH ──
+    let isAdmin = false;
+    const btnLogin     = document.getElementById('btnLogin');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const passInput    = document.getElementById('passInput');
+    const btnPassOk    = document.getElementById('btnPassOk');
+    const modalError   = document.getElementById('modalError');
+
+    function setAdmin(val) {
+      isAdmin = val;
+      if (val) {
+        document.body.classList.add('is-admin');
+        btnLogin.textContent = 'Deconnexion';
+        btnLogin.className = 'btn-logout';
+        localStorage.setItem('odgg_admin', '1');
+      } else {
+        document.body.classList.remove('is-admin');
+        btnLogin.textContent = 'Admin';
+        btnLogin.className = 'btn-login';
+        localStorage.removeItem('odgg_admin');
+      }
+      renderDebts();
+    }
+
+    btnLogin.addEventListener('click', () => {
+      if (isAdmin) { setAdmin(false); return; }
+      modalOverlay.classList.add('open');
+      passInput.value = '';
+      modalError.textContent = '';
+      passInput.focus();
+    });
+
+    modalOverlay.addEventListener('click', e => {
+      if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+    });
+
+    function tryLogin() {
+      const pass = passInput.value;
+      db.ref('config/adminPass').once('value', snap => {
+        const stored = snap.val();
+        if (!stored) {
+          db.ref('config/adminPass').set('odgg');
+          if (pass === 'odgg') { setAdmin(true); modalOverlay.classList.remove('open'); }
+          else { modalError.textContent = 'Mot de passe incorrect'; }
+        } else if (pass === stored) {
+          setAdmin(true); modalOverlay.classList.remove('open');
+        } else {
+          modalError.textContent = 'Mot de passe incorrect';
+        }
+      });
+    }
+
+    btnPassOk.addEventListener('click', tryLogin);
+    passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+
+    if (localStorage.getItem('odgg_admin') === '1') {
+      db.ref('config/adminPass').once('value', () => setAdmin(true));
+    }
+
+    // ── UTILS ──
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── DATA ──
+    let membersData = {};
+    let dettesData = {};
+
+    const selectFrom   = document.getElementById('selectFrom');
+    const selectTo     = document.getElementById('selectTo');
+    const amountInput  = document.getElementById('amountInput');
+    const btnAddDebt   = document.getElementById('btnAddDebt');
+    const debtList     = document.getElementById('debtList');
+    const emptyMsg     = document.getElementById('emptyMsg');
+    const hint         = document.getElementById('hint');
+    const summarySection = document.getElementById('summarySection');
+    const summaryList  = document.getElementById('summaryList');
+
+    function populateSelects() {
+      const entries = Object.entries(membersData).sort(([,a],[,b]) => a.name.localeCompare(b.name));
+      [selectFrom, selectTo].forEach(sel => {
+        const val = sel.value;
+        sel.innerHTML = '<option value="">-- Membre --</option>';
+        entries.forEach(([id, m]) => {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = m.name;
+          sel.appendChild(opt);
+        });
+        sel.value = val;
+      });
+    }
+
+    function getMemberName(id) {
+      return membersData[id] ? membersData[id].name : '???';
+    }
+
+    // ── ADD DEBT ──
+    btnAddDebt.addEventListener('click', () => {
+      const fromId = selectFrom.value;
+      const toId = selectTo.value;
+      const amount = parseFloat(amountInput.value);
+      if (!fromId || !toId) return;
+      if (fromId === toId) return;
+      if (!amount || amount <= 0) return;
+      dettesRef.push({
+        from: fromId,
+        to: toId,
+        amount: Math.round(amount * 100) / 100,
+        createdAt: Date.now()
+      });
+      amountInput.value = '';
+    });
+
+    // ── RENDER ──
+    function renderDebts() {
+      const entries = Object.entries(dettesData).sort(([,a],[,b]) => b.createdAt - a.createdAt);
+      debtList.innerHTML = '';
+
+      if (entries.length === 0) {
+        debtList.appendChild(emptyMsg);
+        hint.textContent = '';
+        summarySection.style.display = 'none';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+
+      let total = 0;
+      entries.forEach(([id, d]) => {
+        total += d.amount;
+        const card = document.createElement('div');
+        card.className = 'debt-card';
+        const date = new Date(d.createdAt);
+        const dateStr = date.toLocaleDateString('fr-FR');
+        const removeBtn = isAdmin
+          ? `<button class="btn-remove" data-id="${id}">&#x2715;</button>`
+          : '';
+        card.innerHTML =
+          `<div class="debt-info">
+            <div class="debt-names">
+              <span class="from">${escHtml(getMemberName(d.from))}</span>
+              <span class="arrow">doit</span>
+              <span class="debt-amount">${d.amount.toFixed(2)} €</span>
+              <span class="arrow">à</span>
+              <span class="to">${escHtml(getMemberName(d.to))}</span>
+            </div>
+            <div class="debt-date">${dateStr}</div>
+          </div>${removeBtn}`;
+        debtList.appendChild(card);
+      });
+
+      if (isAdmin) {
+        debtList.querySelectorAll('.btn-remove').forEach(btn => {
+          btn.addEventListener('click', () => dettesRef.child(btn.dataset.id).remove());
+        });
+      }
+
+      hint.textContent = `${entries.length} dette${entries.length > 1 ? 's' : ''} — total : ${total.toFixed(2)} €`;
+
+      renderSummary(entries);
+    }
+
+    function renderSummary(entries) {
+      const balances = {};
+
+      entries.forEach(([, d]) => {
+        if (!balances[d.from]) balances[d.from] = { owes: 0, owed: 0 };
+        if (!balances[d.to]) balances[d.to] = { owes: 0, owed: 0 };
+        balances[d.from].owes += d.amount;
+        balances[d.to].owed += d.amount;
+      });
+
+      const sorted = Object.entries(balances).sort(([a],[b]) => getMemberName(a).localeCompare(getMemberName(b)));
+      summaryList.innerHTML = '';
+
+      if (sorted.length === 0) {
+        summarySection.style.display = 'none';
+        return;
+      }
+
+      summarySection.style.display = 'block';
+
+      sorted.forEach(([id, b]) => {
+        const net = b.owed - b.owes;
+        let netClass = 'zero';
+        let netPrefix = '';
+        if (net > 0) { netClass = 'positive'; netPrefix = '+'; }
+        else if (net < 0) { netClass = 'negative'; }
+
+        const card = document.createElement('div');
+        card.className = 'summary-card';
+        card.innerHTML =
+          `<div class="summary-name">${escHtml(getMemberName(id))}</div>
+           <div class="summary-amounts">
+             <span class="summary-owes">Doit : ${b.owes.toFixed(2)} €</span>
+             <span class="summary-owed">Reçoit : ${b.owed.toFixed(2)} €</span>
+             <span class="summary-net ${netClass}">${netPrefix}${net.toFixed(2)} €</span>
+           </div>`;
+        summaryList.appendChild(card);
+      });
+    }
+
+    // ── LISTENERS ──
+    membersRef.on('value', snap => {
+      membersData = snap.val() || {};
+      populateSelects();
+      renderDebts();
+    });
+
+    dettesRef.on('value', snap => {
+      dettesData = snap.val() || {};
+      renderDebts();
+    });
+  </script>
+</body>
+</html>
