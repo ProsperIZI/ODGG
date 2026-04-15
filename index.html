@@ -259,15 +259,8 @@
 
   <h1>Comit&eacute; ODGG</h1>
 
-  <nav>
-    <a href="empereur.html">Empereur</a>
-    <a href="index.html" class="active">Comit&eacute;</a>
-    <a href="cruche.html">Cruche</a>
-    <a href="galere.html">Galère</a>
-    <a href="congele.html">Congèle</a>
-    <a href="dette.html">Dettes</a>
-    <button class="btn-login" id="btnLogin" onclick="onLoginClick()">Admin</button>
-  </nav>
+  <div id="navbar"></div>
+  <script src="nav.js"></script>
 
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
@@ -354,6 +347,8 @@
       modalError.textContent = '';
       setTimeout(function() { passInput.focus(); }, 100);
     }
+
+    btnLogin.addEventListener('click', onLoginClick);
 
     modalOverlay.addEventListener('click', function(e) {
       if (e.target === modalOverlay) modalOverlay.classList.remove('open');
