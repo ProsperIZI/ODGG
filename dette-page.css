@@ -1,0 +1,130 @@
+.container { max-width: 550px; }
+
+/* ADD FORM */
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  border-radius: 14px;
+  padding: 20px;
+}
+.add-form label {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #555;
+}
+.add-form select, .add-form input[type="number"] {
+  width: 100%;
+  background: #12121f;
+  border: 1px solid #2a2a40;
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #fff;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.add-form select:focus, .add-form input[type="number"]:focus { border-color: #6c63ff; }
+.add-form select option { background: #12121f; color: #fff; }
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.form-row .arrow {
+  color: #6c63ff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.form-row > div { flex: 1; }
+
+.btn-add-debt {
+  background: #6c63ff;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-top: 4px;
+}
+.btn-add-debt:hover { opacity: 0.85; }
+
+/* DEBT LIST */
+.debt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.debt-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.debt-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.debt-names {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.debt-names .from { color: #ff6584; }
+.debt-names .arrow { color: #555; margin: 0 6px; }
+.debt-names .to { color: #6c63ff; }
+.debt-amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffbe76;
+}
+.debt-date {
+  font-size: 0.7rem;
+  color: #444;
+}
+
+.btn-remove { flex-shrink: 0; }
+
+/* SUMMARY */
+.summary {
+  margin-top: 32px;
+}
+.summary-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 6px;
+}
+.summary-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.summary-amounts {
+  display: flex;
+  gap: 12px;
+  font-size: 0.8rem;
+}
+.summary-owes { color: #ff6584; }
+.summary-owed { color: #6c63ff; }
+.summary-net { font-weight: 700; }
+.summary-net.positive { color: #6c63ff; }
+.summary-net.negative { color: #ff6584; }
+.summary-net.zero { color: #555; }
