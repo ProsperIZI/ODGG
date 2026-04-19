@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cruche ODGG</title>
+  <title>Congèle ODGG</title>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
 
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="cruche-page.css">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/congele-page.css">
 </head>
 <body>
 
-  <h1>Cruche ODGG</h1>
+  <h1>Congèle ODGG</h1>
 
   <div id="navbar"></div>
-  <script src="nav.js"></script>
+  <script src="assets/js/nav.js"></script>
 
   <!-- MODAL LOGIN -->
   <div class="modal-overlay" id="modalOverlay">
@@ -29,23 +29,17 @@
   </div>
 
   <div class="container">
-    <div class="section-title">Tableau des cruches</div>
+    <div class="section-title" id="addTitle" style="display:none">Ajouter un aliment</div>
+    <div class="add-form" id="addForm" style="display:none">
+      <input id="wordInput" type="text" placeholder="Nouvel aliment..." maxlength="60"/>
+      <button class="btn-add" id="btnAdd">+</button>
+    </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Membre</th>
-          <th class="col-score">Score</th>
-          <th id="thActions"></th>
-        </tr>
-      </thead>
-      <tbody id="tableBody">
-      </tbody>
-    </table>
-
-    <div class="empty-msg" id="emptyMsg">Aucun membre &mdash; ajoute des membres dans le Comit&eacute;</div>
-    <div class="hint" id="hint"></div>
+    <div class="section-title">Aliments</div>
+    <div class="word-list" id="wordList">
+      <div class="empty-msg" id="emptyMsg">Aucun aliment pour l'instant</div>
+    </div>
+    <div class="word-count" id="wordCount"></div>
   </div>
 
   <script>
@@ -61,30 +55,44 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const membersRef = db.ref('comite/members');
+    const wordsRef = db.ref('congele/words');
 
-    // ── ADMIN AUTH ──
-    let isAdmin = false;
+    // ── ELEMENTS ──
     const btnLogin     = document.getElementById('btnLogin');
     const modalOverlay = document.getElementById('modalOverlay');
     const passInput    = document.getElementById('passInput');
     const btnPassOk    = document.getElementById('btnPassOk');
     const modalError   = document.getElementById('modalError');
+    const addTitle     = document.getElementById('addTitle');
+    const addForm      = document.getElementById('addForm');
+    const wordInput    = document.getElementById('wordInput');
+    const btnAdd       = document.getElementById('btnAdd');
+    const wordList     = document.getElementById('wordList');
+    const emptyMsg     = document.getElementById('emptyMsg');
+    const wordCount    = document.getElementById('wordCount');
 
+    let isAdmin = false;
+    let wordsData = {};
+
+    // ── ADMIN ──
     function setAdmin(val) {
       isAdmin = val;
       if (val) {
         document.body.classList.add('is-admin');
         btnLogin.textContent = 'Deconnexion';
         btnLogin.className = 'btn-logout';
+        addTitle.style.display = 'block';
+        addForm.style.display = 'flex';
         localStorage.setItem('odgg_admin', '1');
       } else {
         document.body.classList.remove('is-admin');
         btnLogin.textContent = 'Admin';
         btnLogin.className = 'btn-login';
+        addTitle.style.display = 'none';
+        addForm.style.display = 'none';
         localStorage.removeItem('odgg_admin');
       }
-      renderTable();
+      render();
     }
 
     btnLogin.addEventListener('click', () => {
@@ -122,65 +130,78 @@
       db.ref('config/adminPass').once('value', () => setAdmin(true));
     }
 
-    // ── TABLE ──
-    const tableBody = document.getElementById('tableBody');
-    const emptyMsg  = document.getElementById('emptyMsg');
-    const hint      = document.getElementById('hint');
-
-    let membersData = {};
-
+    // ── UTILS ──
     function escHtml(s) {
       return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    function addWord() {
+      const text = wordInput.value.trim();
+      if (!text) return;
+      wordsRef.push({ text: text, score: 0, createdAt: Date.now() });
+      wordInput.value = '';
+      wordInput.focus();
+    }
+
     function changeScore(id, delta) {
-      membersRef.child(id).child('score').transaction(current => {
+      wordsRef.child(id).child('score').transaction(current => {
         const val = (current || 0) + delta;
         return val < 0 ? 0 : val;
       });
     }
 
-    function renderTable() {
-      const entries = Object.entries(membersData).sort(([,a],[,b]) => (b.score || 0) - (a.score || 0));
-      tableBody.innerHTML = '';
+    btnAdd.addEventListener('click', addWord);
+    wordInput.addEventListener('keydown', e => { if (e.key === 'Enter') addWord(); });
+
+    // ── RENDER ──
+    function render() {
+      const entries = Object.entries(wordsData).sort(([,a],[,b]) => (b.score || 0) - (a.score || 0));
+      wordList.innerHTML = '';
 
       if (entries.length === 0) {
-        emptyMsg.style.display = 'block';
-        hint.textContent = '';
+        wordList.appendChild(emptyMsg);
+        wordCount.textContent = '';
         return;
       }
 
-      emptyMsg.style.display = 'none';
-      const medals = ['&#129351;','&#129352;','&#129353;'];
+      entries.forEach(([id, w]) => {
+        const score = w.score || 0;
+        const card = document.createElement('div');
+        card.className = 'word-card';
 
-      entries.forEach(([id, m], i) => {
-        const score = m.score || 0;
-        const tr = document.createElement('tr');
-        const actionsTd = isAdmin
-          ? `<td class="col-actions">
-               <button class="btn-score btn-minus" data-id="${id}" data-delta="-1">&minus;</button>
-               <button class="btn-score btn-plus"  data-id="${id}" data-delta="1">+</button>
-             </td>`
+        const adminBtns = isAdmin
+          ? '<div class="word-actions">' +
+              '<button class="btn-score btn-minus" data-id="' + id + '" data-delta="-1">&minus;</button>' +
+              '<button class="btn-score btn-plus" data-id="' + id + '" data-delta="1">+</button>' +
+              '<button class="btn-remove" data-id="' + id + '">&#x2715;</button>' +
+            '</div>'
           : '';
-        tr.innerHTML = `
-          <td class="col-rank">${medals[i] ?? (i + 1)}</td>
-          <td class="col-name">${escHtml(m.name)}</td>
-          <td class="col-score ${score > 0 ? 'score-positive' : 'score-zero'}">${score}</td>${actionsTd}`;
-        tableBody.appendChild(tr);
+
+        card.innerHTML =
+          '<div class="word-info">' +
+            '<span class="word-text">' + escHtml(w.text) + '</span>' +
+          '</div>' +
+          '<span class="word-score ' + (score > 0 ? 'score-positive' : 'score-zero') + '">' + score + '</span>' +
+          adminBtns;
+
+        wordList.appendChild(card);
       });
 
       if (isAdmin) {
-        tableBody.querySelectorAll('.btn-score').forEach(btn => {
+        wordList.querySelectorAll('.btn-score').forEach(btn => {
           btn.addEventListener('click', () => changeScore(btn.dataset.id, parseInt(btn.dataset.delta)));
+        });
+        wordList.querySelectorAll('.btn-remove').forEach(btn => {
+          btn.addEventListener('click', () => wordsRef.child(btn.dataset.id).remove());
         });
       }
 
-      hint.textContent = `${entries.length} membre${entries.length > 1 ? 's' : ''} \u2014 tri\u00E9 par score`;
+      wordCount.textContent = entries.length + ' aliment' + (entries.length > 1 ? 's' : '') + ' \u2014 tri\u00e9 par score';
     }
 
-    membersRef.on('value', snap => {
-      membersData = snap.val() || {};
-      renderTable();
+    wordsRef.on('value', snap => {
+      wordsData = snap.val() || {};
+      render();
     });
   </script>
 </body>
