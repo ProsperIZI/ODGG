@@ -4,7 +4,7 @@ const dettesRef = db.ref('dettes');
 
 // ── ADMIN AUTH ──
 const escHtml = window.ODGG.escHtml;
-const adminAuth = window.ODGG.createAdminPage({ db, onAdminChange: renderDebts });
+let adminAuth;
 
 // ── DATA ──
 let membersData = {};
@@ -168,3 +168,5 @@ dettesRef.on('value', snap => {
   dettesData = snap.val() || {};
   renderDebts();
 });
+
+adminAuth = window.ODGG.createAdminPage({ db, onAdminChange: renderDebts });

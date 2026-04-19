@@ -5,19 +5,10 @@ const membersRef = db.ref('comite/members');
 
 // ── ADMIN AUTH ──
 const escHtml = window.ODGG.escHtml;
+let adminAuth;
 
 const addPlayersSection = document.getElementById('addPlayersSection');
 const memberChecklist  = document.getElementById('memberChecklist');
-
-const adminAuth = window.ODGG.createAdminPage({
-  db,
-  adminSections: [{ element: addPlayersSection, display: 'block' }],
-  onAdminChange: function () {
-    renderActivePlayers();
-    renderLeaderboard();
-    renderChecklist();
-  }
-});
 
 // ── CONNEXION ──
 let serverOffset = 0;
@@ -296,4 +287,14 @@ playersRef.on('value', snap => {
   renderActivePlayers();
   renderLeaderboard();
   renderChecklist();
+});
+
+adminAuth = window.ODGG.createAdminPage({
+  db,
+  adminSections: [{ element: addPlayersSection, display: 'block' }],
+  onAdminChange: function () {
+    renderActivePlayers();
+    renderLeaderboard();
+    renderChecklist();
+  }
 });

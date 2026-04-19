@@ -3,7 +3,7 @@ const membersRef = db.ref('comite/members');
 
 // ── ADMIN AUTH ──
 const escHtml = window.ODGG.escHtml;
-const adminAuth = window.ODGG.createAdminPage({ db, onAdminChange: renderTable });
+let adminAuth;
 
 // ── TABLE ──
 const tableBody = document.getElementById('tableBody');
@@ -64,3 +64,5 @@ membersRef.on('value', snap => {
   membersData = snap.val() || {};
   renderTable();
 });
+
+adminAuth = window.ODGG.createAdminPage({ db, onAdminChange: renderTable });

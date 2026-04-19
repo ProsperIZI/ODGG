@@ -4,7 +4,7 @@ const anecdotesRef = db.ref('galere/anecdotes');
 
 // ── ADMIN AUTH ──
 const escHtml = window.ODGG.escHtml;
-const adminAuth = window.ODGG.createAdminPage({ db, onAdminChange: render });
+let adminAuth;
 
 // ── DATA ──
 const memberListEl = document.getElementById('memberList');
@@ -116,3 +116,5 @@ anecdotesRef.on('value', snap => {
   anecdotesData = snap.val() || {};
   render();
 });
+
+adminAuth = window.ODGG.createAdminPage({ db, onAdminChange: render });
