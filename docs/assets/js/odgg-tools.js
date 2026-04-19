@@ -152,6 +152,42 @@
     };
   }
 
+  function applyAdminSections(sections, isAdmin) {
+    var list = sections || [];
+    list.forEach(function (section) {
+      var item = section || {};
+      var el = item.element || section;
+      if (!el) return;
+      el.style.display = isAdmin ? (item.display || 'block') : 'none';
+    });
+  }
+
+  function createAdminPage(options) {
+    var opts = options || {};
+    return createAdminAuth({
+      db: opts.db,
+      labels: opts.labels,
+      readOnly: opts.readOnly,
+      onAdminChange: function (isAdmin) {
+        applyAdminSections(opts.adminSections, isAdmin);
+        if (typeof opts.onAdminChange === 'function') {
+          opts.onAdminChange(isAdmin);
+        }
+      }
+    });
+  }
+
+  function applyNonNegativeDelta(ref, delta, onCommitted) {
+    if (!ref || typeof ref.transaction !== 'function') return;
+    ref.transaction(function (current) {
+      var val = (current || 0) + delta;
+      return val < 0 ? 0 : val;
+    }, function (error, committed, snap) {
+      if (error || !committed || typeof onCommitted !== 'function') return;
+      onCommitted(snap && snap.val ? snap.val() : null);
+    });
+  }
+
   function currentPage() {
     return (location.pathname.split('/').pop() || 'index.html').toLowerCase();
   }
@@ -199,6 +235,8 @@
     getDb: getDb,
     escHtml: escHtml,
     createAdminAuth: createAdminAuth,
+    createAdminPage: createAdminPage,
+    applyNonNegativeDelta: applyNonNegativeDelta,
     readOnlyMode: readOnlyMode,
     logAction: logAction,
     exportSnapshot: exportSnapshot,

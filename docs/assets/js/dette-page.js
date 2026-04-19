@@ -3,15 +3,8 @@ const membersRef = db.ref('comite/members');
 const dettesRef = db.ref('dettes');
 
 // ── ADMIN AUTH ──
-let isAdmin = false;
 const escHtml = window.ODGG.escHtml;
-
-function setAdminUi(val) {
-  isAdmin = val;
-  renderDebts();
-}
-
-window.ODGG.createAdminAuth({ db, onAdminChange: setAdminUi });
+const adminAuth = window.ODGG.createAdminPage({ db, onAdminChange: renderDebts });
 
 // ── DATA ──
 let membersData = {};
@@ -91,7 +84,7 @@ function renderDebts() {
     card.className = 'debt-card';
     const date = new Date(d.createdAt);
     const dateStr = date.toLocaleDateString('fr-FR');
-    const removeBtn = isAdmin
+    const removeBtn = adminAuth.isAdmin
       ? `<button class="btn-remove" data-id="${id}">&#x2715;</button>`
       : '';
     card.innerHTML =
@@ -108,7 +101,7 @@ function renderDebts() {
     debtList.appendChild(card);
   });
 
-  if (isAdmin) {
+  if (adminAuth.isAdmin) {
     debtList.querySelectorAll('.btn-remove').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.dataset.id;

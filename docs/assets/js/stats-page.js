@@ -12,19 +12,12 @@ const importFile = document.getElementById('importFile');
 const btnImport = document.getElementById('btnImport');
 const backupHint = document.getElementById('backupHint');
 
-let isAdmin = false;
 let rootData = {};
 const escHtml = window.ODGG.escHtml;
-
-function setAdminUi(val) {
-  isAdmin = val;
-  backupPanel.style.display = isAdmin ? 'block' : 'none';
-}
-
-window.ODGG.createAdminAuth({
+const adminAuth = window.ODGG.createAdminPage({
   db,
   labels: { readOnly: 'Lecture seule' },
-  onAdminChange: setAdminUi
+  adminSections: [{ element: backupPanel, display: 'block' }]
 });
 
 function renderStats() {
@@ -98,7 +91,7 @@ btnCopyReadonly.addEventListener('click', async () => {
 });
 
 btnExport.addEventListener('click', async () => {
-  if (!isAdmin) return;
+  if (!adminAuth.isAdmin) return;
   const data = await window.ODGG.exportSnapshot(db);
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   window.ODGG.downloadJson('odgg-backup-' + stamp + '.json', data);
@@ -107,7 +100,7 @@ btnExport.addEventListener('click', async () => {
 });
 
 btnImport.addEventListener('click', async () => {
-  if (!isAdmin) return;
+  if (!adminAuth.isAdmin) return;
   const file = importFile.files && importFile.files[0];
   if (!file) {
     backupHint.textContent = 'Choisis un fichier JSON';

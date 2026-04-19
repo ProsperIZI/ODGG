@@ -10,24 +10,17 @@ const wordList     = document.getElementById('wordList');
 const emptyMsg     = document.getElementById('emptyMsg');
 const wordCount    = document.getElementById('wordCount');
 
-let isAdmin = false;
 let wordsData = {};
 const escHtml = window.ODGG.escHtml;
 
-// ── ADMIN ──
-function setAdminUi(val) {
-  isAdmin = val;
-  if (val) {
-    addTitle.style.display = 'block';
-    addForm.style.display = 'flex';
-  } else {
-    addTitle.style.display = 'none';
-    addForm.style.display = 'none';
-  }
-  render();
-}
-
-window.ODGG.createAdminAuth({ db, onAdminChange: setAdminUi });
+const adminAuth = window.ODGG.createAdminPage({
+  db,
+  adminSections: [
+    { element: addTitle, display: 'block' },
+    { element: addForm, display: 'flex' }
+  ],
+  onAdminChange: render
+});
 
 function addWord() {
   const text = wordInput.value.trim();
@@ -40,17 +33,12 @@ function addWord() {
 }
 
 function changeScore(id, delta) {
-  wordsRef.child(id).child('score').transaction(current => {
-    const val = (current || 0) + delta;
-    return val < 0 ? 0 : val;
-  }, (error, committed, snap) => {
-    if (!error && committed) {
-      window.ODGG.logAction(db, 'congele_score_change', {
-        id: id,
-        delta: delta,
-        score: snap && snap.val ? snap.val() : null
-      });
-    }
+  window.ODGG.applyNonNegativeDelta(wordsRef.child(id).child('score'), delta, score => {
+    window.ODGG.logAction(db, 'congele_score_change', {
+      id: id,
+      delta: delta,
+      score: score
+    });
   });
 }
 
@@ -73,7 +61,7 @@ function render() {
     const card = document.createElement('div');
     card.className = 'word-card';
 
-    const adminBtns = isAdmin
+    const adminBtns = adminAuth.isAdmin
       ? '<div class="word-actions">' +
           '<button class="btn-score btn-minus" data-id="' + id + '" data-delta="-1">&minus;</button>' +
           '<button class="btn-score btn-plus" data-id="' + id + '" data-delta="1">+</button>' +
@@ -91,7 +79,7 @@ function render() {
     wordList.appendChild(card);
   });
 
-  if (isAdmin) {
+  if (adminAuth.isAdmin) {
     wordList.querySelectorAll('.btn-score').forEach(btn => {
       btn.addEventListener('click', () => changeScore(btn.dataset.id, parseInt(btn.dataset.delta)));
     });

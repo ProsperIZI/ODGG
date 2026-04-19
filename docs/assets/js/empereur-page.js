@@ -4,25 +4,20 @@ const playersRef = db.ref('game/players');
 const membersRef = db.ref('comite/members');
 
 // ── ADMIN AUTH ──
-let isAdmin = false;
 const escHtml = window.ODGG.escHtml;
 
 const addPlayersSection = document.getElementById('addPlayersSection');
 const memberChecklist  = document.getElementById('memberChecklist');
 
-function setAdminUi(val) {
-  isAdmin = val;
-  if (val) {
-    addPlayersSection.style.display = 'block';
-  } else {
-    addPlayersSection.style.display = 'none';
+const adminAuth = window.ODGG.createAdminPage({
+  db,
+  adminSections: [{ element: addPlayersSection, display: 'block' }],
+  onAdminChange: function () {
+    renderActivePlayers();
+    renderLeaderboard();
+    renderChecklist();
   }
-  renderActivePlayers();
-  renderLeaderboard();
-  renderChecklist();
-}
-
-window.ODGG.createAdminAuth({ db, onAdminChange: setAdminUi });
+});
 
 // ── CONNEXION ──
 let serverOffset = 0;
@@ -243,7 +238,7 @@ function renderActivePlayers() {
   active.forEach(([id, p]) => {
     const card = document.createElement('div');
     card.className = 'player-card';
-    const btns = isAdmin
+    const btns = adminAuth.isAdmin
       ? `<div style="display:flex;gap:8px;align-items:center">
            <button class="btn-stop" data-id="${id}">Arr\u00eat</button>
            <button class="btn-stop" style="background:#2a2a40;font-size:1rem;padding:6px 10px" data-remove="${id}" title="Supprimer">\u2715</button>
@@ -257,7 +252,7 @@ function renderActivePlayers() {
     activePlayersEl.appendChild(card);
   });
 
-  if (isAdmin) {
+  if (adminAuth.isAdmin) {
     activePlayersEl.querySelectorAll('.btn-stop[data-id]').forEach(btn => {
       btn.addEventListener('click', () => eliminatePlayer(btn.dataset.id));
     });
@@ -278,7 +273,7 @@ function renderLeaderboard() {
     const isLoop = p.tourStopped > 15;
     const row = document.createElement('div');
     row.className = 'lb-row';
-    const removeBtn = isAdmin
+    const removeBtn = adminAuth.isAdmin
       ? `<button style="background:none;border:none;color:#333;cursor:pointer;font-size:0.9rem;padding:2px 4px" title="Retirer" data-remove-lb="${id}">\u2715</button>`
       : '';
     row.innerHTML = `
@@ -288,7 +283,7 @@ function renderLeaderboard() {
     leaderboardEl.appendChild(row);
   });
 
-  if (isAdmin) {
+  if (adminAuth.isAdmin) {
     leaderboardEl.querySelectorAll('[data-remove-lb]').forEach(btn => {
       btn.addEventListener('click', () => removePlayer(btn.dataset.removeLb));
     });

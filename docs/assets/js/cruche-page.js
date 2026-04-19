@@ -2,15 +2,8 @@ const db = window.ODGG.getDb();
 const membersRef = db.ref('comite/members');
 
 // ── ADMIN AUTH ──
-let isAdmin = false;
 const escHtml = window.ODGG.escHtml;
-
-function setAdminUi(val) {
-  isAdmin = val;
-  renderTable();
-}
-
-window.ODGG.createAdminAuth({ db, onAdminChange: setAdminUi });
+const adminAuth = window.ODGG.createAdminPage({ db, onAdminChange: renderTable });
 
 // ── TABLE ──
 const tableBody = document.getElementById('tableBody');
@@ -20,17 +13,12 @@ const hint      = document.getElementById('hint');
 let membersData = {};
 
 function changeScore(id, delta) {
-  membersRef.child(id).child('score').transaction(current => {
-    const val = (current || 0) + delta;
-    return val < 0 ? 0 : val;
-  }, (error, committed, snap) => {
-    if (!error && committed) {
-      window.ODGG.logAction(db, 'cruche_score_change', {
-        id: id,
-        delta: delta,
-        score: snap && snap.val ? snap.val() : null
-      });
-    }
+  window.ODGG.applyNonNegativeDelta(membersRef.child(id).child('score'), delta, score => {
+    window.ODGG.logAction(db, 'cruche_score_change', {
+      id: id,
+      delta: delta,
+      score: score
+    });
   });
 }
 
@@ -50,7 +38,7 @@ function renderTable() {
   entries.forEach(([id, m], i) => {
     const score = m.score || 0;
     const tr = document.createElement('tr');
-    const actionsTd = isAdmin
+    const actionsTd = adminAuth.isAdmin
       ? `<td class="col-actions">
            <button class="btn-score btn-minus" data-id="${id}" data-delta="-1">&minus;</button>
            <button class="btn-score btn-plus"  data-id="${id}" data-delta="1">+</button>
@@ -63,7 +51,7 @@ function renderTable() {
     tableBody.appendChild(tr);
   });
 
-  if (isAdmin) {
+  if (adminAuth.isAdmin) {
     tableBody.querySelectorAll('.btn-score').forEach(btn => {
       btn.addEventListener('click', () => changeScore(btn.dataset.id, parseInt(btn.dataset.delta)));
     });

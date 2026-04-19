@@ -11,26 +11,16 @@ const memberList   = document.getElementById('memberList');
 const emptyMsg     = document.getElementById('emptyMsg');
 const memberCount  = document.getElementById('memberCount');
 
-let isAdmin = false;
 let membersData = {};
 const escHtml = window.ODGG.escHtml;
 
-// ── ADMIN ──
-function setAdminUi(val) {
-  isAdmin = val;
-  if (val) {
-    addTitle.style.display = 'block';
-    addForm.style.display = 'flex';
-  } else {
-    addTitle.style.display = 'none';
-    addForm.style.display = 'none';
-  }
-  renderMembers();
-}
-
-window.ODGG.createAdminAuth({
-  db: db,
-  onAdminChange: setAdminUi
+const adminAuth = window.ODGG.createAdminPage({
+  db,
+  adminSections: [
+    { element: addTitle, display: 'block' },
+    { element: addForm, display: 'flex' }
+  ],
+  onAdminChange: renderMembers
 });
 
 function addMember() {
@@ -101,7 +91,7 @@ function renderMembers() {
     card.className = 'member-card';
     card.setAttribute('data-card', id);
 
-    const adminBtns = isAdmin
+    const adminBtns = adminAuth.isAdmin
       ? '<div style="display:flex;gap:6px;align-items:center">' +
           '<button class="btn-edit-role" data-edit="' + id + '" data-role="' + escHtml(role) + '">Poste</button>' +
           '<button class="btn-remove" data-id="' + id + '">&#x2715;</button>' +
@@ -117,7 +107,7 @@ function renderMembers() {
     memberList.appendChild(card);
   }
 
-  if (isAdmin) {
+  if (adminAuth.isAdmin) {
     const removeBtns = memberList.querySelectorAll('.btn-remove');
     removeBtns.forEach(function(btn) {
       btn.addEventListener('click', function() {
