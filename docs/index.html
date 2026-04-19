@@ -23,7 +23,7 @@
     <div class="modal">
       <h3>Connexion Admin</h3>
       <input type="password" id="passInput" placeholder="Mot de passe..." autocomplete="off"/>
-      <button class="btn-confirm" id="btnPassOk" onclick="tryLogin()">Se connecter</button>
+      <button class="btn-confirm" id="btnPassOk">Se connecter</button>
       <div class="modal-error" id="modalError"></div>
     </div>
   </div>
@@ -44,110 +44,45 @@
   </div>
 
   <script>
-    const firebaseConfig = {
-      apiKey:            "AIzaSyBECOMyRRCKaAOThoUAS4STiFFPNhlbpvs",
-      authDomain:        "odgg-80281.firebaseapp.com",
-      databaseURL:       "https://odgg-80281-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId:         "odgg-80281",
-      storageBucket:     "odgg-80281.firebasestorage.app",
-      messagingSenderId: "542453001838",
-      appId:             "1:542453001838:web:77ae05671f3d2a299b407f"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    var db = firebase.database();
-    var membersRef = db.ref('comite/members');
+    const db = window.ODGG.getDb();
+    const membersRef = db.ref('comite/members');
 
     // ── ELEMENTS ──
-    var btnLogin     = document.getElementById('btnLogin');
-    var modalOverlay = document.getElementById('modalOverlay');
-    var passInput    = document.getElementById('passInput');
-    var btnPassOk    = document.getElementById('btnPassOk');
-    var modalError   = document.getElementById('modalError');
-    var addTitle     = document.getElementById('addTitle');
-    var addForm      = document.getElementById('addForm');
-    var nameInput    = document.getElementById('nameInput');
-    var roleInput    = document.getElementById('roleInput');
-    var btnAdd       = document.getElementById('btnAdd');
-    var memberList   = document.getElementById('memberList');
-    var emptyMsg     = document.getElementById('emptyMsg');
-    var memberCount  = document.getElementById('memberCount');
+    const addTitle     = document.getElementById('addTitle');
+    const addForm      = document.getElementById('addForm');
+    const nameInput    = document.getElementById('nameInput');
+    const roleInput    = document.getElementById('roleInput');
+    const btnAdd       = document.getElementById('btnAdd');
+    const memberList   = document.getElementById('memberList');
+    const emptyMsg     = document.getElementById('emptyMsg');
+    const memberCount  = document.getElementById('memberCount');
 
-    var readOnly = window.ODGG.readOnlyMode();
-    var isAdmin = false;
-    var membersData = {};
+    let isAdmin = false;
+    let membersData = {};
+    const escHtml = window.ODGG.escHtml;
 
     // ── ADMIN ──
-    function setAdmin(val) {
-      if (readOnly && val) return;
+    function setAdminUi(val) {
       isAdmin = val;
       if (val) {
-        document.body.classList.add('is-admin');
-        btnLogin.textContent = 'Deconnexion';
-        btnLogin.className = 'btn-logout';
         addTitle.style.display = 'block';
         addForm.style.display = 'flex';
-        localStorage.setItem('odgg_admin', '1');
       } else {
-        document.body.classList.remove('is-admin');
-        btnLogin.textContent = 'Admin';
-        btnLogin.className = 'btn-login';
         addTitle.style.display = 'none';
         addForm.style.display = 'none';
-        localStorage.removeItem('odgg_admin');
       }
       renderMembers();
     }
 
-    function onLoginClick() {
-      if (isAdmin) { setAdmin(false); return; }
-      modalOverlay.classList.add('open');
-      passInput.value = '';
-      modalError.textContent = '';
-      setTimeout(function() { passInput.focus(); }, 100);
-    }
-
-    btnLogin.addEventListener('click', onLoginClick);
-
-    modalOverlay.addEventListener('click', function(e) {
-      if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+    window.ODGG.createAdminAuth({
+      db: db,
+      onAdminChange: setAdminUi
     });
-
-    function tryLogin() {
-      var pass = passInput.value;
-      db.ref('config/adminPass').once('value', function(snap) {
-        var stored = snap.val();
-        if (!stored) {
-          db.ref('config/adminPass').set('odgg');
-          stored = 'odgg';
-        }
-        if (pass === stored) {
-          setAdmin(true);
-          modalOverlay.classList.remove('open');
-        } else {
-          modalError.textContent = 'Mot de passe incorrect';
-        }
-      });
-    }
-
-    passInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') tryLogin();
-    });
-
-    // Restaurer session
-    if (!readOnly && localStorage.getItem('odgg_admin') === '1') {
-      db.ref('config/adminPass').once('value', function() { setAdmin(true); });
-    }
-
-    // ─��� UTILS ─��
-    function escHtml(s) {
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
 
     function addMember() {
-      var name = nameInput.value.trim();
+      const name = nameInput.value.trim();
       if (!name) return;
-      var role = roleInput.value.trim();
+      const role = roleInput.value.trim();
       membersRef.push({ name: name, role: role || '', score: 0, createdAt: Date.now() }).then(function(ref) {
         window.ODGG.logAction(db, 'member_add', { id: ref.key, name: name, role: role || '' });
       });
@@ -157,16 +92,16 @@
     }
 
     function toggleRoleEdit(id, currentRole) {
-      var existing = document.getElementById('role-edit-' + id);
+      const existing = document.getElementById('role-edit-' + id);
       if (existing) { existing.remove(); return; }
-      var rows = document.querySelectorAll('.role-edit-row');
-      for (var i = 0; i < rows.length; i++) rows[i].remove();
+      const rows = document.querySelectorAll('.role-edit-row');
+      rows.forEach(function(rowEl) { rowEl.remove(); });
 
-      var card = document.querySelector('[data-card="' + id + '"]');
+      const card = document.querySelector('[data-card="' + id + '"]');
       if (!card) return;
-      var info = card.querySelector('.member-info');
+      const info = card.querySelector('.member-info');
 
-      var row = document.createElement('div');
+      const row = document.createElement('div');
       row.className = 'role-edit-row';
       row.id = 'role-edit-' + id;
       row.innerHTML =
@@ -174,12 +109,12 @@
         '<button class="btn-save-role">OK</button>';
       info.appendChild(row);
 
-      var inp = row.querySelector('input');
-      var btn = row.querySelector('.btn-save-role');
+      const inp = row.querySelector('input');
+      const btn = row.querySelector('.btn-save-role');
       inp.focus();
 
       function save() {
-        var nextRole = inp.value.trim();
+        const nextRole = inp.value.trim();
         membersRef.child(id).update({ role: nextRole }).then(function() {
           window.ODGG.logAction(db, 'member_role_update', { id: id, role: nextRole });
         });
@@ -195,8 +130,7 @@
 
     // ── RENDER ──
     function renderMembers() {
-      var data = membersData;
-      var entries = Object.entries(data).sort(function(a, b) { return a[1].createdAt - b[1].createdAt; });
+      const entries = Object.entries(membersData).sort(function(a, b) { return a[1].createdAt - b[1].createdAt; });
       memberList.innerHTML = '';
 
       if (entries.length === 0) {
@@ -205,15 +139,15 @@
         return;
       }
 
-      for (var i = 0; i < entries.length; i++) {
-        var id = entries[i][0];
-        var m = entries[i][1];
-        var role = m.role || '';
-        var card = document.createElement('div');
+      for (const entry of entries) {
+        const id = entry[0];
+        const m = entry[1];
+        const role = m.role || '';
+        const card = document.createElement('div');
         card.className = 'member-card';
         card.setAttribute('data-card', id);
 
-        var adminBtns = isAdmin
+        const adminBtns = isAdmin
           ? '<div style="display:flex;gap:6px;align-items:center">' +
               '<button class="btn-edit-role" data-edit="' + id + '" data-role="' + escHtml(role) + '">Poste</button>' +
               '<button class="btn-remove" data-id="' + id + '">&#x2715;</button>' +
@@ -230,23 +164,19 @@
       }
 
       if (isAdmin) {
-        var removeBtns = memberList.querySelectorAll('.btn-remove');
-        for (var j = 0; j < removeBtns.length; j++) {
-          (function(btn) {
-            btn.addEventListener('click', function() {
-              var idToRemove = btn.dataset.id;
-              membersRef.child(idToRemove).remove().then(function() {
-                window.ODGG.logAction(db, 'member_remove', { id: idToRemove });
-              });
+        const removeBtns = memberList.querySelectorAll('.btn-remove');
+        removeBtns.forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            const idToRemove = btn.dataset.id;
+            membersRef.child(idToRemove).remove().then(function() {
+              window.ODGG.logAction(db, 'member_remove', { id: idToRemove });
             });
-          })(removeBtns[j]);
-        }
-        var editBtns = memberList.querySelectorAll('.btn-edit-role');
-        for (var k = 0; k < editBtns.length; k++) {
-          (function(btn) {
-            btn.addEventListener('click', function() { toggleRoleEdit(btn.dataset.edit, btn.dataset.role); });
-          })(editBtns[k]);
-        }
+          });
+        });
+        const editBtns = memberList.querySelectorAll('.btn-edit-role');
+        editBtns.forEach(function(btn) {
+          btn.addEventListener('click', function() { toggleRoleEdit(btn.dataset.edit, btn.dataset.role); });
+        });
       }
 
       memberCount.textContent = entries.length + ' membre' + (entries.length > 1 ? 's' : '');

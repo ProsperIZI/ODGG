@@ -9,6 +9,13 @@ Site statique pour GitHub Pages.
 - Les ressources partagées sont dans `docs/assets/`.
 - La page stats est `docs/stats.html`.
 
+## Organisation du code
+
+- L'initialisation Firebase est centralisée dans `docs/assets/js/odgg-tools.js` via `window.ODGG.getDb()`.
+- L'auth admin est factorisée via `window.ODGG.createAdminAuth(...)`.
+- L'escaping HTML partagé est fourni par `window.ODGG.escHtml(...)`.
+- Les pages (`index.html`, `cruche.html`, `empereur.html`, `dette.html`, `congele.html`, `galere.html`, `stats.html`) ne doivent plus redéfinir ces blocs communs.
+
 ## Nouvelles fonctionnalités
 
 - Historique des actions stocké dans `history/` (ajouts, suppressions, scores, etc.).

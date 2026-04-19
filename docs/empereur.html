@@ -57,7 +57,7 @@
 
       <div id="addPlayersSection" style="display:none;margin-bottom:20px">
         <div class="checklist" id="memberChecklist"></div>
-        <button class="btn-add-players" id="btnAddChecked" onclick="addCheckedPlayers()">Ajouter la s&eacute;lection</button>
+        <button class="btn-add-players" id="btnAddChecked">Ajouter la s&eacute;lection</button>
       </div>
 
       <div class="active-players" id="activePlayers"></div>
@@ -71,96 +71,31 @@
   </div>
 
   <script>
-    const firebaseConfig = {
-      apiKey:            "AIzaSyBECOMyRRCKaAOThoUAS4STiFFPNhlbpvs",
-      authDomain:        "odgg-80281.firebaseapp.com",
-      databaseURL:       "https://odgg-80281-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId:         "odgg-80281",
-      storageBucket:     "odgg-80281.firebasestorage.app",
-      messagingSenderId: "542453001838",
-      appId:             "1:542453001838:web:77ae05671f3d2a299b407f"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db         = firebase.database();
+    const db         = window.ODGG.getDb();
     const timerRef   = db.ref('game/timer');
     const playersRef = db.ref('game/players');
     const membersRef = db.ref('comite/members');
 
     // ── ADMIN AUTH ──
-    const readOnly = window.ODGG.readOnlyMode();
     let isAdmin = false;
-    const btnLogin    = document.getElementById('btnLogin');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const passInput   = document.getElementById('passInput');
-    const btnPassOk   = document.getElementById('btnPassOk');
-    const modalError  = document.getElementById('modalError');
+    const escHtml = window.ODGG.escHtml;
 
     const addPlayersSection = document.getElementById('addPlayersSection');
     const memberChecklist  = document.getElementById('memberChecklist');
 
-    function setAdmin(val) {
-      if (readOnly && val) return;
+    function setAdminUi(val) {
       isAdmin = val;
       if (val) {
-        document.body.classList.add('is-admin');
-        btnLogin.textContent = 'Deconnexion';
-        btnLogin.className = 'btn-logout';
         addPlayersSection.style.display = 'block';
-        localStorage.setItem('odgg_admin', '1');
       } else {
-        document.body.classList.remove('is-admin');
-        btnLogin.textContent = 'Admin';
-        btnLogin.className = 'btn-login';
         addPlayersSection.style.display = 'none';
-        localStorage.removeItem('odgg_admin');
       }
       renderActivePlayers();
       renderLeaderboard();
       renderChecklist();
     }
 
-    btnLogin.addEventListener('click', () => {
-      if (isAdmin) { setAdmin(false); return; }
-      modalOverlay.classList.add('open');
-      passInput.value = '';
-      modalError.textContent = '';
-      passInput.focus();
-    });
-
-    modalOverlay.addEventListener('click', e => {
-      if (e.target === modalOverlay) modalOverlay.classList.remove('open');
-    });
-
-    function tryLogin() {
-      const pass = passInput.value;
-      db.ref('config/adminPass').once('value', snap => {
-        const stored = snap.val();
-        if (!stored) {
-          // Premier lancement : on cree le mot de passe par defaut
-          db.ref('config/adminPass').set('odgg');
-          if (pass === 'odgg') {
-            setAdmin(true);
-            modalOverlay.classList.remove('open');
-          } else {
-            modalError.textContent = 'Mot de passe incorrect';
-          }
-        } else if (pass === stored) {
-          setAdmin(true);
-          modalOverlay.classList.remove('open');
-        } else {
-          modalError.textContent = 'Mot de passe incorrect';
-        }
-      });
-    }
-
-    btnPassOk.addEventListener('click', tryLogin);
-    passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
-
-    // Restaurer session
-    if (!readOnly && localStorage.getItem('odgg_admin') === '1') {
-      db.ref('config/adminPass').once('value', () => setAdmin(true));
-    }
+    window.ODGG.createAdminAuth({ db, onAdminChange: setAdminUi });
 
     // ── CONNEXION ──
     let serverOffset = 0;
@@ -196,6 +131,7 @@
     const roundBadgeEl   = document.getElementById('roundBadge');
     const btnStart       = document.getElementById('btnStart');
     const btnReset       = document.getElementById('btnReset');
+    const btnAddChecked  = document.getElementById('btnAddChecked');
     const activePlayersEl = document.getElementById('activePlayers');
     const leaderboardEl   = document.getElementById('leaderboard');
     const emptyLbEl       = document.getElementById('emptyLb');
@@ -218,10 +154,6 @@
     function tourLabel(tour) {
       if (tour <= 15) return `Tour ${tour} (${16 - tour} min)`;
       return `Tour ${tour} (boucle ${tour - 15})`;
-    }
-
-    function escHtml(s) {
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
     function computeSeconds() {
@@ -361,6 +293,8 @@
       checkedIds.clear();
       renderChecklist();
     }
+
+    btnAddChecked.addEventListener('click', addCheckedPlayers);
 
     function eliminatePlayer(id) {
       playersRef.child(id).update({ eliminated: true, tourStopped: timerState.globalTour }).then(() => {

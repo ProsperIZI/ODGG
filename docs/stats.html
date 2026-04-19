@@ -61,24 +61,8 @@
   </div>
 
   <script>
-    const firebaseConfig = {
-      apiKey:            "AIzaSyBECOMyRRCKaAOThoUAS4STiFFPNhlbpvs",
-      authDomain:        "odgg-80281.firebaseapp.com",
-      databaseURL:       "https://odgg-80281-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId:         "odgg-80281",
-      storageBucket:     "odgg-80281.firebasestorage.app",
-      messagingSenderId: "542453001838",
-      appId:             "1:542453001838:web:77ae05671f3d2a299b407f"
-    };
+    const db = window.ODGG.getDb();
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    const btnLogin = document.getElementById('btnLogin');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const passInput = document.getElementById('passInput');
-    const btnPassOk = document.getElementById('btnPassOk');
-    const modalError = document.getElementById('modalError');
     const backupPanel = document.getElementById('backupPanel');
 
     const statsGrid = document.getElementById('statsGrid');
@@ -91,69 +75,20 @@
     const btnImport = document.getElementById('btnImport');
     const backupHint = document.getElementById('backupHint');
 
-    const readOnly = window.ODGG.readOnlyMode();
     let isAdmin = false;
     let rootData = {};
+    const escHtml = window.ODGG.escHtml;
 
-    function escHtml(s) {
-      return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/\"/g, '&quot;');
-    }
-
-    function setAdmin(val) {
-      if (readOnly && val) return;
+    function setAdminUi(val) {
       isAdmin = val;
-      if (val) {
-        document.body.classList.add('is-admin');
-        btnLogin.textContent = 'Deconnexion';
-        btnLogin.className = 'btn-logout';
-        localStorage.setItem('odgg_admin', '1');
-      } else {
-        document.body.classList.remove('is-admin');
-        btnLogin.textContent = readOnly ? 'Lecture seule' : 'Admin';
-        btnLogin.className = 'btn-login';
-        localStorage.removeItem('odgg_admin');
-      }
       backupPanel.style.display = isAdmin ? 'block' : 'none';
     }
 
-    btnLogin.addEventListener('click', () => {
-      if (readOnly) return;
-      if (isAdmin) { setAdmin(false); return; }
-      modalOverlay.classList.add('open');
-      passInput.value = '';
-      modalError.textContent = '';
-      passInput.focus();
+    window.ODGG.createAdminAuth({
+      db,
+      labels: { readOnly: 'Lecture seule' },
+      onAdminChange: setAdminUi
     });
-
-    modalOverlay.addEventListener('click', e => {
-      if (e.target === modalOverlay) modalOverlay.classList.remove('open');
-    });
-
-    function tryLogin() {
-      const pass = passInput.value;
-      db.ref('config/adminPass').once('value', snap => {
-        const stored = snap.val() || 'odgg';
-        if (pass === stored) {
-          setAdmin(true);
-          modalOverlay.classList.remove('open');
-        } else {
-          modalError.textContent = 'Mot de passe incorrect';
-        }
-      });
-    }
-
-    btnPassOk.addEventListener('click', tryLogin);
-    passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
-
-    if (!readOnly && localStorage.getItem('odgg_admin') === '1') {
-      db.ref('config/adminPass').once('value', () => setAdmin(true));
-    } else {
-      setAdmin(false);
-    }
 
     function renderStats() {
       const members = rootData.comite && rootData.comite.members ? rootData.comite.members : {};
