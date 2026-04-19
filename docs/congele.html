@@ -17,6 +17,7 @@
 
   <div id="navbar"></div>
   <script src="assets/js/nav.js"></script>
+  <script src="assets/js/odgg-tools.js"></script>
 
   <!-- MODAL LOGIN -->
   <div class="modal-overlay" id="modalOverlay">
@@ -71,11 +72,13 @@
     const emptyMsg     = document.getElementById('emptyMsg');
     const wordCount    = document.getElementById('wordCount');
 
+    const readOnly = window.ODGG.readOnlyMode();
     let isAdmin = false;
     let wordsData = {};
 
     // ── ADMIN ──
     function setAdmin(val) {
+      if (readOnly && val) return;
       isAdmin = val;
       if (val) {
         document.body.classList.add('is-admin');
@@ -126,7 +129,7 @@
     btnPassOk.addEventListener('click', tryLogin);
     passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
 
-    if (localStorage.getItem('odgg_admin') === '1') {
+    if (!readOnly && localStorage.getItem('odgg_admin') === '1') {
       db.ref('config/adminPass').once('value', () => setAdmin(true));
     }
 
@@ -138,7 +141,9 @@
     function addWord() {
       const text = wordInput.value.trim();
       if (!text) return;
-      wordsRef.push({ text: text, score: 0, createdAt: Date.now() });
+      wordsRef.push({ text: text, score: 0, createdAt: Date.now() }).then(ref => {
+        window.ODGG.logAction(db, 'congele_add', { id: ref.key, text: text });
+      });
       wordInput.value = '';
       wordInput.focus();
     }
@@ -147,6 +152,14 @@
       wordsRef.child(id).child('score').transaction(current => {
         const val = (current || 0) + delta;
         return val < 0 ? 0 : val;
+      }, (error, committed, snap) => {
+        if (!error && committed) {
+          window.ODGG.logAction(db, 'congele_score_change', {
+            id: id,
+            delta: delta,
+            score: snap && snap.val ? snap.val() : null
+          });
+        }
       });
     }
 
@@ -192,7 +205,12 @@
           btn.addEventListener('click', () => changeScore(btn.dataset.id, parseInt(btn.dataset.delta)));
         });
         wordList.querySelectorAll('.btn-remove').forEach(btn => {
-          btn.addEventListener('click', () => wordsRef.child(btn.dataset.id).remove());
+          btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            wordsRef.child(id).remove().then(() => {
+              window.ODGG.logAction(db, 'congele_remove', { id: id });
+            });
+          });
         });
       }
 

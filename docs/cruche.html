@@ -17,6 +17,7 @@
 
   <div id="navbar"></div>
   <script src="assets/js/nav.js"></script>
+  <script src="assets/js/odgg-tools.js"></script>
 
   <!-- MODAL LOGIN -->
   <div class="modal-overlay" id="modalOverlay">
@@ -64,6 +65,7 @@
     const membersRef = db.ref('comite/members');
 
     // ── ADMIN AUTH ──
+    const readOnly = window.ODGG.readOnlyMode();
     let isAdmin = false;
     const btnLogin     = document.getElementById('btnLogin');
     const modalOverlay = document.getElementById('modalOverlay');
@@ -72,6 +74,7 @@
     const modalError   = document.getElementById('modalError');
 
     function setAdmin(val) {
+      if (readOnly && val) return;
       isAdmin = val;
       if (val) {
         document.body.classList.add('is-admin');
@@ -118,7 +121,7 @@
     btnPassOk.addEventListener('click', tryLogin);
     passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
 
-    if (localStorage.getItem('odgg_admin') === '1') {
+    if (!readOnly && localStorage.getItem('odgg_admin') === '1') {
       db.ref('config/adminPass').once('value', () => setAdmin(true));
     }
 
@@ -137,6 +140,14 @@
       membersRef.child(id).child('score').transaction(current => {
         const val = (current || 0) + delta;
         return val < 0 ? 0 : val;
+      }, (error, committed, snap) => {
+        if (!error && committed) {
+          window.ODGG.logAction(db, 'cruche_score_change', {
+            id: id,
+            delta: delta,
+            score: snap && snap.val ? snap.val() : null
+          });
+        }
       });
     }
 

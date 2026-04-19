@@ -17,6 +17,7 @@
 
   <div id="navbar"></div>
   <script src="assets/js/nav.js"></script>
+  <script src="assets/js/odgg-tools.js"></script>
 
   <!-- MODAL LOGIN -->
   <div class="modal-overlay" id="modalOverlay">
@@ -77,6 +78,7 @@
     const dettesRef = db.ref('dettes');
 
     // ── ADMIN AUTH ──
+    const readOnly = window.ODGG.readOnlyMode();
     let isAdmin = false;
     const btnLogin     = document.getElementById('btnLogin');
     const modalOverlay = document.getElementById('modalOverlay');
@@ -85,6 +87,7 @@
     const modalError   = document.getElementById('modalError');
 
     function setAdmin(val) {
+      if (readOnly && val) return;
       isAdmin = val;
       if (val) {
         document.body.classList.add('is-admin');
@@ -131,7 +134,7 @@
     btnPassOk.addEventListener('click', tryLogin);
     passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
 
-    if (localStorage.getItem('odgg_admin') === '1') {
+    if (!readOnly && localStorage.getItem('odgg_admin') === '1') {
       db.ref('config/adminPass').once('value', () => setAdmin(true));
     }
 
@@ -186,6 +189,13 @@
         to: toId,
         amount: Math.round(amount * 100) / 100,
         createdAt: Date.now()
+      }).then(ref => {
+        window.ODGG.logAction(db, 'debt_add', {
+          id: ref.key,
+          from: fromId,
+          to: toId,
+          amount: Math.round(amount * 100) / 100
+        });
       });
       amountInput.value = '';
     });
@@ -230,7 +240,12 @@
 
       if (isAdmin) {
         debtList.querySelectorAll('.btn-remove').forEach(btn => {
-          btn.addEventListener('click', () => dettesRef.child(btn.dataset.id).remove());
+          btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            dettesRef.child(id).remove().then(() => {
+              window.ODGG.logAction(db, 'debt_remove', { id: id });
+            });
+          });
         });
       }
 

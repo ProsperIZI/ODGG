@@ -17,6 +17,7 @@
 
   <div id="navbar"></div>
   <script src="assets/js/nav.js"></script>
+  <script src="assets/js/odgg-tools.js"></script>
 
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
@@ -72,11 +73,13 @@
     var emptyMsg     = document.getElementById('emptyMsg');
     var memberCount  = document.getElementById('memberCount');
 
+    var readOnly = window.ODGG.readOnlyMode();
     var isAdmin = false;
     var membersData = {};
 
     // ── ADMIN ──
     function setAdmin(val) {
+      if (readOnly && val) return;
       isAdmin = val;
       if (val) {
         document.body.classList.add('is-admin');
@@ -132,7 +135,7 @@
     });
 
     // Restaurer session
-    if (localStorage.getItem('odgg_admin') === '1') {
+    if (!readOnly && localStorage.getItem('odgg_admin') === '1') {
       db.ref('config/adminPass').once('value', function() { setAdmin(true); });
     }
 
@@ -145,7 +148,9 @@
       var name = nameInput.value.trim();
       if (!name) return;
       var role = roleInput.value.trim();
-      membersRef.push({ name: name, role: role || '', score: 0, createdAt: Date.now() });
+      membersRef.push({ name: name, role: role || '', score: 0, createdAt: Date.now() }).then(function(ref) {
+        window.ODGG.logAction(db, 'member_add', { id: ref.key, name: name, role: role || '' });
+      });
       nameInput.value = '';
       roleInput.value = '';
       nameInput.focus();
@@ -174,7 +179,10 @@
       inp.focus();
 
       function save() {
-        membersRef.child(id).update({ role: inp.value.trim() });
+        var nextRole = inp.value.trim();
+        membersRef.child(id).update({ role: nextRole }).then(function() {
+          window.ODGG.logAction(db, 'member_role_update', { id: id, role: nextRole });
+        });
         row.remove();
       }
       btn.addEventListener('click', save);
@@ -225,7 +233,12 @@
         var removeBtns = memberList.querySelectorAll('.btn-remove');
         for (var j = 0; j < removeBtns.length; j++) {
           (function(btn) {
-            btn.addEventListener('click', function() { membersRef.child(btn.dataset.id).remove(); });
+            btn.addEventListener('click', function() {
+              var idToRemove = btn.dataset.id;
+              membersRef.child(idToRemove).remove().then(function() {
+                window.ODGG.logAction(db, 'member_remove', { id: idToRemove });
+              });
+            });
           })(removeBtns[j]);
         }
         var editBtns = memberList.querySelectorAll('.btn-edit-role');

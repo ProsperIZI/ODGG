@@ -17,6 +17,7 @@
 
   <div id="navbar"></div>
   <script src="assets/js/nav.js"></script>
+  <script src="assets/js/odgg-tools.js"></script>
 
   <!-- MODAL LOGIN -->
   <div class="modal-overlay" id="modalOverlay">
@@ -53,6 +54,7 @@
     const anecdotesRef = db.ref('galere/anecdotes');
 
     // ── ADMIN AUTH ──
+    const readOnly = window.ODGG.readOnlyMode();
     let isAdmin = false;
     const btnLogin     = document.getElementById('btnLogin');
     const modalOverlay = document.getElementById('modalOverlay');
@@ -61,6 +63,7 @@
     const modalError   = document.getElementById('modalError');
 
     function setAdmin(val) {
+      if (readOnly && val) return;
       isAdmin = val;
       if (val) {
         document.body.classList.add('is-admin');
@@ -107,7 +110,7 @@
     btnPassOk.addEventListener('click', tryLogin);
     passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
 
-    if (localStorage.getItem('odgg_admin') === '1') {
+    if (!readOnly && localStorage.getItem('odgg_admin') === '1') {
       db.ref('config/adminPass').once('value', () => setAdmin(true));
     }
 
@@ -128,13 +131,17 @@
       if (!input) return;
       const text = input.value.trim();
       if (!text) return;
-      anecdotesRef.child(memberId).push({ text: text, createdAt: Date.now() });
+      anecdotesRef.child(memberId).push({ text: text, createdAt: Date.now() }).then(ref => {
+        window.ODGG.logAction(db, 'galere_add', { memberId: memberId, anecdoteId: ref.key });
+      });
       input.value = '';
       input.focus();
     }
 
     function removeAnecdote(memberId, anecdoteId) {
-      anecdotesRef.child(memberId).child(anecdoteId).remove();
+      anecdotesRef.child(memberId).child(anecdoteId).remove().then(() => {
+        window.ODGG.logAction(db, 'galere_remove', { memberId: memberId, anecdoteId: anecdoteId });
+      });
     }
 
     function render() {

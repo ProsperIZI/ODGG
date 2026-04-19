@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stats ODGG</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
+
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/stats-page.css">
+</head>
+<body>
+
+  <h1>Stats ODGG</h1>
+
+  <div id="navbar"></div>
+  <script src="assets/js/nav.js"></script>
+  <script src="assets/js/odgg-tools.js"></script>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3>Connexion Admin</h3>
+      <input type="password" id="passInput" placeholder="Mot de passe..." autocomplete="off"/>
+      <button class="btn-confirm" id="btnPassOk">Se connecter</button>
+      <div class="modal-error" id="modalError"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <div class="panel">
+      <div class="section-title">Top Cruche</div>
+      <div id="topCruche" class="list"></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">Historique récent</div>
+      <div id="historyList" class="list"></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">Partage lecture seule</div>
+      <div class="share-row">
+        <input id="readonlyLink" type="text" readonly>
+        <button id="btnCopyReadonly" class="btn-add">Copier</button>
+      </div>
+    </div>
+
+    <div class="panel admin-only" id="backupPanel">
+      <div class="section-title">Sauvegarde</div>
+      <div class="actions">
+        <button id="btnExport" class="btn-add">Exporter JSON</button>
+        <input id="importFile" type="file" accept="application/json">
+        <button id="btnImport" class="btn-add">Importer JSON</button>
+      </div>
+      <div class="hint" id="backupHint"></div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey:            "AIzaSyBECOMyRRCKaAOThoUAS4STiFFPNhlbpvs",
+      authDomain:        "odgg-80281.firebaseapp.com",
+      databaseURL:       "https://odgg-80281-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId:         "odgg-80281",
+      storageBucket:     "odgg-80281.firebasestorage.app",
+      messagingSenderId: "542453001838",
+      appId:             "1:542453001838:web:77ae05671f3d2a299b407f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const btnLogin = document.getElementById('btnLogin');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const passInput = document.getElementById('passInput');
+    const btnPassOk = document.getElementById('btnPassOk');
+    const modalError = document.getElementById('modalError');
+    const backupPanel = document.getElementById('backupPanel');
+
+    const statsGrid = document.getElementById('statsGrid');
+    const topCruche = document.getElementById('topCruche');
+    const historyList = document.getElementById('historyList');
+    const readonlyLink = document.getElementById('readonlyLink');
+    const btnCopyReadonly = document.getElementById('btnCopyReadonly');
+    const btnExport = document.getElementById('btnExport');
+    const importFile = document.getElementById('importFile');
+    const btnImport = document.getElementById('btnImport');
+    const backupHint = document.getElementById('backupHint');
+
+    const readOnly = window.ODGG.readOnlyMode();
+    let isAdmin = false;
+    let rootData = {};
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;');
+    }
+
+    function setAdmin(val) {
+      if (readOnly && val) return;
+      isAdmin = val;
+      if (val) {
+        document.body.classList.add('is-admin');
+        btnLogin.textContent = 'Deconnexion';
+        btnLogin.className = 'btn-logout';
+        localStorage.setItem('odgg_admin', '1');
+      } else {
+        document.body.classList.remove('is-admin');
+        btnLogin.textContent = readOnly ? 'Lecture seule' : 'Admin';
+        btnLogin.className = 'btn-login';
+        localStorage.removeItem('odgg_admin');
+      }
+      backupPanel.style.display = isAdmin ? 'block' : 'none';
+    }
+
+    btnLogin.addEventListener('click', () => {
+      if (readOnly) return;
+      if (isAdmin) { setAdmin(false); return; }
+      modalOverlay.classList.add('open');
+      passInput.value = '';
+      modalError.textContent = '';
+      passInput.focus();
+    });
+
+    modalOverlay.addEventListener('click', e => {
+      if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+    });
+
+    function tryLogin() {
+      const pass = passInput.value;
+      db.ref('config/adminPass').once('value', snap => {
+        const stored = snap.val() || 'odgg';
+        if (pass === stored) {
+          setAdmin(true);
+          modalOverlay.classList.remove('open');
+        } else {
+          modalError.textContent = 'Mot de passe incorrect';
+        }
+      });
+    }
+
+    btnPassOk.addEventListener('click', tryLogin);
+    passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+
+    if (!readOnly && localStorage.getItem('odgg_admin') === '1') {
+      db.ref('config/adminPass').once('value', () => setAdmin(true));
+    } else {
+      setAdmin(false);
+    }
+
+    function renderStats() {
+      const members = rootData.comite && rootData.comite.members ? rootData.comite.members : {};
+      const debts = rootData.dettes || {};
+      const players = rootData.game && rootData.game.players ? rootData.game.players : {};
+      const history = rootData.history || {};
+
+      const memberEntries = Object.values(members);
+      const debtEntries = Object.values(debts);
+      const playerEntries = Object.values(players);
+      const historyEntries = Object.entries(history)
+        .map(([id, h]) => ({ id, ...(h || {}) }))
+        .sort((a, b) => (b.at || 0) - (a.at || 0));
+
+      const totalScore = memberEntries.reduce((sum, m) => sum + (m.score || 0), 0);
+      const totalDebt = debtEntries.reduce((sum, d) => sum + (d.amount || 0), 0);
+      const activePlayers = playerEntries.filter(p => !p.eliminated).length;
+      const eliminatedPlayers = playerEntries.filter(p => p.eliminated).length;
+
+      const cards = [
+        { label: 'Membres', value: memberEntries.length },
+        { label: 'Score cruche total', value: totalScore },
+        { label: 'Dettes totales', value: totalDebt.toFixed(2) + ' €' },
+        { label: 'Joueurs actifs', value: activePlayers },
+        { label: 'Joueurs éliminés', value: eliminatedPlayers },
+        { label: 'Actions journalisées', value: historyEntries.length }
+      ];
+
+      statsGrid.innerHTML = cards.map(c =>
+        '<div class="stat-card">' +
+          '<div class="stat-label">' + escHtml(c.label) + '</div>' +
+          '<div class="stat-value">' + escHtml(c.value) + '</div>' +
+        '</div>'
+      ).join('');
+
+      const top = Object.values(members)
+        .sort((a, b) => (b.score || 0) - (a.score || 0))
+        .slice(0, 5);
+
+      topCruche.innerHTML = top.length ? top.map((m, i) =>
+        '<div class="row">' +
+          '<span>#' + (i + 1) + ' ' + escHtml(m.name || 'Inconnu') + '</span>' +
+          '<strong>' + (m.score || 0) + '</strong>' +
+        '</div>'
+      ).join('') : '<div class="empty-msg">Aucune donnée</div>';
+
+      historyList.innerHTML = historyEntries.length ? historyEntries.slice(0, 40).map(h => {
+        const date = h.at ? new Date(h.at).toLocaleString('fr-FR') : '-';
+        return '<div class="row">' +
+          '<span>' + escHtml(h.type || 'action') + ' · ' + escHtml(h.page || '?') + '</span>' +
+          '<small>' + escHtml(date) + '</small>' +
+        '</div>';
+      }).join('') : '<div class="empty-msg">Aucune action enregistrée</div>';
+    }
+
+    function buildReadonlyLink() {
+      const u = new URL(location.href);
+      u.searchParams.set('view', '1');
+      readonlyLink.value = u.toString();
+    }
+
+    btnCopyReadonly.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(readonlyLink.value);
+        btnCopyReadonly.textContent = 'Copié';
+        setTimeout(() => { btnCopyReadonly.textContent = 'Copier'; }, 1200);
+      } catch (_) {
+        backupHint.textContent = 'Impossible de copier automatiquement';
+      }
+    });
+
+    btnExport.addEventListener('click', async () => {
+      if (!isAdmin) return;
+      const data = await window.ODGG.exportSnapshot(db);
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      window.ODGG.downloadJson('odgg-backup-' + stamp + '.json', data);
+      backupHint.textContent = 'Export terminé';
+      window.ODGG.logAction(db, 'backup_export', { by: 'admin' });
+    });
+
+    btnImport.addEventListener('click', async () => {
+      if (!isAdmin) return;
+      const file = importFile.files && importFile.files[0];
+      if (!file) {
+        backupHint.textContent = 'Choisis un fichier JSON';
+        return;
+      }
+      const ok = confirm('Importer cette sauvegarde ? Cela fusionnera les données Firebase.');
+      if (!ok) return;
+      try {
+        const txt = await file.text();
+        const payload = JSON.parse(txt);
+        await window.ODGG.importSnapshot(db, payload);
+        backupHint.textContent = 'Import terminé';
+        window.ODGG.logAction(db, 'backup_import', { by: 'admin', filename: file.name });
+      } catch (err) {
+        backupHint.textContent = 'Import échoué: ' + (err && err.message ? err.message : 'erreur');
+      }
+    });
+
+    db.ref('/').on('value', snap => {
+      rootData = snap.val() || {};
+      renderStats();
+    });
+
+    buildReadonlyLink();
+  </script>
+</body>
+</html>
