@@ -1,0 +1,304 @@
+const db         = window.ODGG.getDb();
+const timerRef   = db.ref('game/timer');
+const playersRef = db.ref('game/players');
+const membersRef = db.ref('comite/members');
+
+// ── ADMIN AUTH ──
+let isAdmin = false;
+const escHtml = window.ODGG.escHtml;
+
+const addPlayersSection = document.getElementById('addPlayersSection');
+const memberChecklist  = document.getElementById('memberChecklist');
+
+function setAdminUi(val) {
+  isAdmin = val;
+  if (val) {
+    addPlayersSection.style.display = 'block';
+  } else {
+    addPlayersSection.style.display = 'none';
+  }
+  renderActivePlayers();
+  renderLeaderboard();
+  renderChecklist();
+}
+
+window.ODGG.createAdminAuth({ db, onAdminChange: setAdminUi });
+
+// ── CONNEXION ──
+let serverOffset = 0;
+db.ref('.info/serverTimeOffset').on('value', s => { serverOffset = s.val() || 0; });
+const serverNow = () => Date.now() + serverOffset;
+
+const fbStatusEl = document.getElementById('fbStatus');
+db.ref('.info/connected').on('value', snap => {
+  if (snap.val()) {
+    fbStatusEl.textContent = '\u25CF en ligne';
+    fbStatusEl.style.color = '#6c63ff';
+  } else {
+    fbStatusEl.textContent = '\u25CF hors ligne';
+    fbStatusEl.style.color = '#ff6584';
+  }
+});
+
+// ── CONSTANTES ──
+const CIRCUMFERENCE = 2 * Math.PI * 120;
+
+// ── STATE LOCAL ──
+let timerState = {
+  running: false, endTime: null, secondsLeft: 15 * 60,
+  totalSeconds: 15 * 60, globalTour: 1, loopCount: 0, currentMinutes: 15
+};
+let players = {};
+let localInterval = null;
+let advancePending = false;
+
+// ── DOM ──
+const progressEl     = document.getElementById('progressCircle');
+const timeTextEl     = document.getElementById('timeText');
+const roundBadgeEl   = document.getElementById('roundBadge');
+const btnStart       = document.getElementById('btnStart');
+const btnReset       = document.getElementById('btnReset');
+const btnAddChecked  = document.getElementById('btnAddChecked');
+const activePlayersEl = document.getElementById('activePlayers');
+const leaderboardEl   = document.getElementById('leaderboard');
+const emptyLbEl       = document.getElementById('emptyLb');
+
+progressEl.style.strokeDasharray = CIRCUMFERENCE;
+
+function formatTime(s) {
+  const m = Math.floor(s / 60), sec = s % 60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function updateProgress(seconds, total) {
+  const fraction = total > 0 ? seconds / total : 0;
+  progressEl.style.strokeDashoffset = CIRCUMFERENCE * (1 - fraction);
+  progressEl.classList.remove('warn', 'danger');
+  if (fraction <= 0.25) progressEl.classList.add('danger');
+  else if (fraction <= 0.5) progressEl.classList.add('warn');
+}
+
+function tourLabel(tour) {
+  if (tour <= 15) return `Tour ${tour} (${16 - tour} min)`;
+  return `Tour ${tour} (boucle ${tour - 15})`;
+}
+
+function computeSeconds() {
+  if (timerState.running && timerState.endTime) {
+    return Math.max(0, Math.round((timerState.endTime - serverNow()) / 1000));
+  }
+  return timerState.secondsLeft ?? 0;
+}
+
+function updateDisplay() {
+  const seconds = computeSeconds();
+  timeTextEl.textContent = formatTime(seconds);
+  updateProgress(seconds, timerState.totalSeconds);
+
+  const isStart = !timerState.running && timerState.globalTour === 1 && seconds === timerState.totalSeconds;
+  btnStart.textContent = timerState.running ? 'Pause' : (isStart ? 'D\u00e9marrer' : 'Reprendre');
+
+  if (timerState.globalTour <= 15) {
+    roundBadgeEl.textContent = `${timerState.globalTour} / 15`;
+  } else {
+    roundBadgeEl.textContent = `\u221E boucle ${timerState.loopCount}`;
+  }
+
+  if (timerState.running && seconds <= 0 && !advancePending) {
+    advancePending = true;
+    advanceRound();
+  }
+}
+
+function startLocalInterval() { stopLocalInterval(); localInterval = setInterval(updateDisplay, 500); }
+function stopLocalInterval() { if (localInterval) { clearInterval(localInterval); localInterval = null; } }
+
+function fbStart() {
+  const seconds = computeSeconds();
+  timerRef.update({ running: true, endTime: serverNow() + seconds * 1000, secondsLeft: seconds }).then(() => {
+    window.ODGG.logAction(db, 'empereur_start', { seconds: seconds, tour: timerState.globalTour });
+  });
+}
+function fbPause() {
+  const seconds = computeSeconds();
+  timerRef.update({ running: false, secondsLeft: seconds, endTime: null }).then(() => {
+    window.ODGG.logAction(db, 'empereur_pause', { seconds: seconds, tour: timerState.globalTour });
+  });
+}
+function fbReset() {
+  timerRef.set({ running: false, endTime: null, secondsLeft: 15*60, totalSeconds: 15*60, globalTour: 1, loopCount: 0, currentMinutes: 15 });
+  const updates = {};
+  Object.keys(players).forEach(id => { updates[`${id}/eliminated`] = false; updates[`${id}/tourStopped`] = null; });
+  if (Object.keys(updates).length) playersRef.update(updates);
+  window.ODGG.logAction(db, 'empereur_reset', {});
+}
+
+function advanceRound() {
+  timerRef.transaction(timer => {
+    if (!timer || !timer.running) return;
+    const now = serverNow();
+    if (timer.endTime > now + 1000) return;
+    let { globalTour, currentMinutes, loopCount } = timer;
+    globalTour++;
+    if (currentMinutes > 1) currentMinutes--; else loopCount++;
+    const newSeconds = currentMinutes * 60;
+    return { ...timer, globalTour, currentMinutes, loopCount, secondsLeft: newSeconds, totalSeconds: newSeconds, endTime: now + newSeconds * 1000 };
+  }, () => { advancePending = false; });
+}
+
+timerRef.once('value', snap => {
+  if (!snap.exists()) {
+    timerRef.set({ running: false, endTime: null, secondsLeft: 15*60, totalSeconds: 15*60, globalTour: 1, loopCount: 0, currentMinutes: 15 });
+  }
+});
+
+timerRef.on('value', snap => {
+  const data = snap.val(); if (!data) return;
+  timerState = data;
+  if (timerState.running) startLocalInterval(); else stopLocalInterval();
+  updateDisplay();
+});
+
+btnStart.addEventListener('click', () => { timerState.running ? fbPause() : fbStart(); });
+btnReset.addEventListener('click', fbReset);
+
+// ── CHECKLIST MEMBRES ──
+let comiteMembers = {};
+let checkedIds = new Set();
+
+membersRef.on('value', snap => {
+  comiteMembers = snap.val() || {};
+  renderChecklist();
+});
+
+function getPlayerNames() {
+  return new Set(Object.values(players).map(p => p.name));
+}
+
+function renderChecklist() {
+  memberChecklist.innerHTML = '';
+  const entries = Object.entries(comiteMembers).sort((a, b) => a[1].createdAt - b[1].createdAt);
+  const existing = getPlayerNames();
+
+  if (entries.length === 0) {
+    memberChecklist.innerHTML = '<div class="checklist-empty">Aucun membre dans le comit\u00e9</div>';
+    return;
+  }
+
+  entries.forEach(([id, m]) => {
+    const alreadyIn = existing.has(m.name);
+    const isChecked = checkedIds.has(id) && !alreadyIn;
+    const item = document.createElement('div');
+    item.className = 'checklist-item' + (isChecked ? ' checked' : '') + (alreadyIn ? ' already-in' : '');
+    item.innerHTML =
+      '<div class="checklist-cb"></div>' +
+      '<span class="checklist-name">' + escHtml(m.name) + '</span>' +
+      (m.role ? '<span class="checklist-role">' + escHtml(m.role) + '</span>' : '') +
+      (alreadyIn ? '<span class="checklist-role">d\u00e9j\u00e0 ajout\u00e9</span>' : '');
+
+    if (!alreadyIn) {
+      item.addEventListener('click', () => {
+        if (checkedIds.has(id)) checkedIds.delete(id);
+        else checkedIds.add(id);
+        renderChecklist();
+      });
+    }
+    memberChecklist.appendChild(item);
+  });
+}
+
+function addCheckedPlayers() {
+  const existing = getPlayerNames();
+  checkedIds.forEach(id => {
+    const m = comiteMembers[id];
+    if (m && !existing.has(m.name)) {
+      playersRef.push({ name: m.name, eliminated: false, tourStopped: null, order: Date.now() }).then(ref => {
+        window.ODGG.logAction(db, 'empereur_player_add', { id: ref.key, name: m.name });
+      });
+    }
+  });
+  checkedIds.clear();
+  renderChecklist();
+}
+
+btnAddChecked.addEventListener('click', addCheckedPlayers);
+
+function eliminatePlayer(id) {
+  playersRef.child(id).update({ eliminated: true, tourStopped: timerState.globalTour }).then(() => {
+    window.ODGG.logAction(db, 'empereur_player_eliminate', { id: id, tour: timerState.globalTour });
+  });
+}
+function removePlayer(id) {
+  playersRef.child(id).remove().then(() => {
+    window.ODGG.logAction(db, 'empereur_player_remove', { id: id });
+  });
+}
+
+function renderActivePlayers() {
+  activePlayersEl.innerHTML = '';
+  const sorted = Object.entries(players).sort(([,a],[,b]) => a.order - b.order);
+  const active = sorted.filter(([,p]) => !p.eliminated);
+  if (sorted.length === 0) return;
+
+  active.forEach(([id, p]) => {
+    const card = document.createElement('div');
+    card.className = 'player-card';
+    const btns = isAdmin
+      ? `<div style="display:flex;gap:8px;align-items:center">
+           <button class="btn-stop" data-id="${id}">Arr\u00eat</button>
+           <button class="btn-stop" style="background:#2a2a40;font-size:1rem;padding:6px 10px" data-remove="${id}" title="Supprimer">\u2715</button>
+         </div>`
+      : '';
+    card.innerHTML = `
+      <div>
+        <div class="player-name">${escHtml(p.name)}</div>
+        <div class="player-status">En course \u2014 ${tourLabel(timerState.globalTour)}</div>
+      </div>${btns}`;
+    activePlayersEl.appendChild(card);
+  });
+
+  if (isAdmin) {
+    activePlayersEl.querySelectorAll('.btn-stop[data-id]').forEach(btn => {
+      btn.addEventListener('click', () => eliminatePlayer(btn.dataset.id));
+    });
+    activePlayersEl.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', () => removePlayer(btn.dataset.remove));
+    });
+  }
+}
+
+function renderLeaderboard() {
+  leaderboardEl.innerHTML = '';
+  const elim = Object.entries(players).filter(([,p]) => p.eliminated).sort(([,a],[,b]) => a.tourStopped - b.tourStopped);
+
+  if (elim.length === 0) { leaderboardEl.appendChild(emptyLbEl); return; }
+
+  const medals = ['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49'];
+  elim.forEach(([id, p], i) => {
+    const isLoop = p.tourStopped > 15;
+    const row = document.createElement('div');
+    row.className = 'lb-row';
+    const removeBtn = isAdmin
+      ? `<button style="background:none;border:none;color:#333;cursor:pointer;font-size:0.9rem;padding:2px 4px" title="Retirer" data-remove-lb="${id}">\u2715</button>`
+      : '';
+    row.innerHTML = `
+      <div class="lb-rank">${medals[i] ?? (i + 1)}</div>
+      <div class="lb-name">${escHtml(p.name)}</div>
+      <div class="lb-tour ${isLoop ? 'loop' : ''}">${tourLabel(p.tourStopped)}</div>${removeBtn}`;
+    leaderboardEl.appendChild(row);
+  });
+
+  if (isAdmin) {
+    leaderboardEl.querySelectorAll('[data-remove-lb]').forEach(btn => {
+      btn.addEventListener('click', () => removePlayer(btn.dataset.removeLb));
+    });
+  }
+}
+
+// Re-render checklist quand les joueurs changent
+playersRef.on('value', snap => {
+  players = snap.val() || {};
+  renderActivePlayers();
+  renderLeaderboard();
+  renderChecklist();
+});

@@ -14,7 +14,8 @@ Site statique pour GitHub Pages.
 - L'initialisation Firebase est centralisée dans `docs/assets/js/odgg-tools.js` via `window.ODGG.getDb()`.
 - L'auth admin est factorisée via `window.ODGG.createAdminAuth(...)`.
 - L'escaping HTML partagé est fourni par `window.ODGG.escHtml(...)`.
-- Les pages (`index.html`, `cruche.html`, `empereur.html`, `dette.html`, `congele.html`, `galere.html`, `stats.html`) ne doivent plus redéfinir ces blocs communs.
+- Le code JS de chaque page est externalisé dans `docs/assets/js/*-page.js` (ex: `index-page.js`, `cruche-page.js`, `empereur-page.js`).
+- Les pages (`index.html`, `cruche.html`, `empereur.html`, `dette.html`, `congele.html`, `galere.html`, `stats.html`) ne doivent plus redéfinir les blocs communs Firebase/auth/utils.
 
 ## Nouvelles fonctionnalités
 
